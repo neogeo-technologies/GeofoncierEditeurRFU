@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/plugins/EditorRFUGeofoncier" >
+        <file>icon.png</file>
+        <file>resources/btn_add_vtx.png</file>
+        <file>resources/btn_add_edge.png</file>
+        <file>resources/underline.png</file>
+    </qresource>
+</RCC>
