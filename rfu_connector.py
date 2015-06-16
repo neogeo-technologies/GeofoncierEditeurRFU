@@ -412,7 +412,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                 msg = elt_err.text
             else:
               msg = str(resp)
-            return QtGui.QMessageBox.warning(self, r"Warning", msg)
+            return QMessageBox.warning(self, r"Warning", msg)
 
         treeterator = EltTree.fromstring(opencs.read()).getiterator(tag=r"changeset")
         if len(treeterator) != 1:
@@ -431,7 +431,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                 msg = elt_err.text
             else:
               msg = str(resp)
-            return QtGui.QMessageBox.warning(self, r"Warning", msg)
+            return QMessageBox.warning(self, r"Warning", msg)
 
         # Close the changeset..
         close_changeset = self.conn.close_changeset(self.zone, changeset_id)
@@ -442,7 +442,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                 msg = elt_err.text
             else:
               msg = str(resp)
-            return QtGui.QMessageBox.warning(self, r"Warning", msg)
+            return QMessageBox.warning(self, r"Warning", msg)
 
         # Reset all..
         self.edges_added = {}
