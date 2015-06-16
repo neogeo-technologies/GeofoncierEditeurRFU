@@ -92,10 +92,10 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         return dlg_login.conn
 
     def on_downloaded(self):
-        
+
         # Download data
         self.download()
-        
+
         # Then, start editing mode..
         for layer in self.layers:
             if not layer.isEditable():
@@ -318,7 +318,9 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         # Stop editing mode..
         for layer in self.layers:
             if layer.isEditable():
-                layer.commitChanges()
+                msg = (u"Veuillez fermer le mode d'édition et valider "
+                       u"vos modification avant de poursuivre.")
+                return QMessageBox.warning(self, r"Warning", msg)
 
         if (self.edges_added
                 or self.vertices_added
@@ -329,7 +331,8 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             pass
         else:
             # Nothing to do..
-            return None
+            msg = (u"Aucune modification des données n'est détecté.")
+            return QMessageBox.warning(self, r"Warning", msg)
 
         # Ensure that the action is intentional..
         msg = (u"Vous êtes sur le point de soumettre "
