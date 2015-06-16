@@ -92,7 +92,14 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         return dlg_login.conn
 
     def on_downloaded(self):
+        
+        # Download data
         self.download()
+        
+        # Then, start editing mode..
+        for layer in self.layers:
+            if not layer.isEditable():
+                layer.startEditing()
 
     def download(self):
 
