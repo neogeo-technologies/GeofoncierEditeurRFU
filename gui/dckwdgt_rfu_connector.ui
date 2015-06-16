@@ -56,7 +56,7 @@
    <bool>true</bool>
   </property>
   <property name="windowTitle">
-   <string>GéoFoncier - Éditeur RFU</string>
+   <string>Géofoncier - Éditeur RFU</string>
   </property>
   <widget class="QWidget" name="dockWidgetContents">
    <property name="enabled">
@@ -151,7 +151,7 @@
        </sizepolicy>
       </property>
       <property name="toolTip">
-       <string>Permalien vers la vue sur le portail GéoFoncier</string>
+       <string>Permalien vers la vue sur le portail Géofoncier</string>
       </property>
       <property name="text">
        <string/>
