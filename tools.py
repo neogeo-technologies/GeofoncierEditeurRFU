@@ -41,12 +41,12 @@ def request(url, method=None, user_agent=None, user=None,
     if user_agent:
         req.add_header(r"User-agent", user_agent)
 
-    #try:
-    return urllib2.urlopen(req)
-    #except urllib2.HTTPError, e:
-    #    raise e
-    #except urllib2.URLError, e:
-    #    raise e
+    try:
+        return urllib2.urlopen(req)
+    except urllib2.HTTPError, err:
+        return err
+    except urllib2.URLError:
+        raise
 
 
 def reproj(qgsgeom, crs_in, crs_out):
