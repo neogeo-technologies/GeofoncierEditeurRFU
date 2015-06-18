@@ -9,6 +9,7 @@ import xml.etree.ElementTree as ElementTree
 
 from PyQt4 import uic
 from PyQt4.QtGui import QDialog
+from PyQt4.QtGui import QMessageBox
 
 from client import APIClient
 from config import Configuration
@@ -62,7 +63,7 @@ class GeoFoncierAPILogin(QDialog, gui_dlg_login):
                 msg = str(resp)
 
             # Then display the error in a message box..
-            return QtGui.QMessageBox.warning(self, r"Warning", msg)
+            return QMessageBox.warning(self, r"Warning", msg)
 
         tree = ElementTree.fromstring(resp.read())
 
