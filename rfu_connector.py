@@ -269,7 +269,9 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         if resp != QMessageBox.Yes:
             return False
 
-        self.reset()
+        res = self.reset()
+        if res != True:
+            return None
 
     def reset(self):
         """Remove RFU layers."""
@@ -313,6 +315,8 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.uploadPushButton.setDisabled(True)
         self.uploadPushButton.clicked.disconnect(self.on_uploaded)
 
+        return True
+
     def on_uploaded(self):
 
         # Stop editing mode..
@@ -344,9 +348,16 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         if resp != QMessageBox.Yes:
             return False
 
-        self.upload()
-        self.reset()
-        self.download()
+        ul = self.upload()
+        if ul != True:
+            return None
+
+        QMessageBox.information(
+                    self, u"Information",
+                    u"Les modifications du RFU sont enregistrées.")
+
+        # self.reset()
+        # self.download()
 
         # self.permalinkLineEdit.setDisabled(True)
         # self.downloadPushButton.setDisabled(True)
@@ -357,10 +368,6 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         # self.permalinkLineEdit.returnPressed.disconnect(self.on_downloaded)
         # self.resetPushButton.clicked.connect(self.on_reset)
         # self.uploadPushButton.clicked.connect(self.on_uploaded)
-
-        QMessageBox.information(
-                    self, u"Information",
-                    u"Les modifications du RFU sont enregistrées.")
 
     def upload(self):
         """Upload data to Géofoncier REST API."""
@@ -451,6 +458,8 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.vertices_removed = {}
         self.edges_modified = {}
         self.vertices_modified = {}
+
+        return True
 
     def extract_layers(self, xml):
         """Return a list of RFU layers."""
