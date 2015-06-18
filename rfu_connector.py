@@ -394,7 +394,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         if self.vertices_modified:
             for fid in self.vertices_modified:
                 tools.xml_subelt_creator(root, u"sommet",
-                                         data=self.vertices_removed[fid],
+                                         data=self.vertices_modified[fid],
                                          action=r"update")
 
         if self.edges_modified:
