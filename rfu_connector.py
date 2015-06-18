@@ -117,7 +117,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             return QMessageBox.warning(self, r"Warning", msg)
 
         # Test if permalink is valid (&centre and &context are mandatory)..
-        pattern = r"^(https?:\/\/(\w+[\w\-\.\:\/])+)\?(\&+?(context|centre|\w+)\=?([\w\-\.\:\,]+?)?)+(\&+)?$"
+        pattern = r"^(https?:\/\/(\w+[\w\-\.\:\/])+)\?((\&+)?(context|centre|\w+)\=?([\w\-\.\:\,]+?)?)+(\&+)?$"
         if not re.match(pattern, url):
             msg = u"Le permalien n'est pas valide."
             return QMessageBox.warning(self, r"Warning", msg)
