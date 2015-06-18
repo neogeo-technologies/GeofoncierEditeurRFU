@@ -96,11 +96,6 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         # Download data
         self.download()
 
-        # Then, start editing mode..
-        for layer in self.layers:
-            if not layer.isEditable():
-                layer.startEditing()
-
     def download(self):
 
         # Connect to API if none..
@@ -245,6 +240,11 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                 continue
             if self.dflt_ellips_acronym == e[0]:
                 self.projComboBox.setCurrentIndex(i)
+
+        # Then, start editing mode..
+        for layer in self.layers:
+            if not layer.isEditable():
+                layer.startEditing()
 
         self.projComboBox.setDisabled(False)
 
