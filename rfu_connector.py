@@ -19,11 +19,13 @@ from PyQt4.QtCore import QVariant
 from PyQt4.QtGui import QColor
 from PyQt4.QtGui import QDockWidget
 from PyQt4.QtGui import QMessageBox
+from qgis.core import QgsCoordinateReferenceSystem
 from qgis.core import QgsRectangle
 # from qgis.core import QgsProject
 # from qgis.core import QgsSnapper
 # from qgis.core import QgsTolerance
 from qgis.core import QgsVectorLayer
+from qgis.core import QgsMapRenderer
 from qgis.core import QgsMarkerSymbolV2
 from qgis.core import QgsLineSymbolV2
 from qgis.core import QgsRuleBasedRendererV2
@@ -46,11 +48,12 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
     closed = pyqtSignal()
 
-    def __init__(self, map_layer_registry, conn=None, parent=None):
+    def __init__(self, canvas, map_layer_registry, conn=None, parent=None):
 
         super(RFUDockWidget, self).__init__(parent)
         self.setupUi(self)
 
+        self.canvas = canvas
         self.map_layer_registry = map_layer_registry
         self.conn = conn
         self.zone = None
@@ -222,7 +225,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             self.precision_class.append(t)
 
         for entry in tree.findall(r"./representation_plane_sommet_autorise/representation_plane_sommet"):
-            t = (entry.attrib[r"som_representation_plane"], entry.text)
+            t = (entry.attrib[r"som_representation_plane"], entry.attrib[r"epsg_crs_id"], entry.text)
             self.ellips_acronym.append(t)
 
         for entry in tree.findall(r"./nature_sommet_conseille/nature"):
@@ -240,11 +243,23 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             self.dflt_ellips_acronym = None
 
         for i, e in enumerate(self.ellips_acronym):
-            self.projComboBox.addItem(e[1])
+
+            self.projComboBox.addItem(e[2])
+
             if not self.dflt_ellips_acronym:
                 continue
+
             if self.dflt_ellips_acronym == e[0]:
+
+                # Check projection in combobox
                 self.projComboBox.setCurrentIndex(i)
+
+                # Activate 'On The Fly'
+                self.canvas.mapRenderer().setProjectionsEnabled(True)
+
+                # Then change the CRS in canvas
+                crs = QgsCoordinateReferenceSystem(int(e[1]), QgsCoordinateReferenceSystem.EpsgCrsId)
+                self.canvas.mapRenderer().setDestinationCrs(crs)
 
         # Then, start editing mode..
         for layer in self.layers:

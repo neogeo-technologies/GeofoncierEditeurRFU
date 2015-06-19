@@ -180,7 +180,7 @@ class EditorRFUGeofoncier:
     def tool_rfu_on_triggered(self, checked):
 
         if checked and not self.rfu:
-            self.rfu = RFUDockWidget(self.map_layer_registry)
+            self.rfu = RFUDockWidget(self.canvas, self.map_layer_registry)
             self.rfu.setObjectName(r"RFUDockWidget")
             self.iface.addDockWidget(Qt.TopDockWidgetArea, self.rfu)
             self.rfu.closed.connect(self.rfu_on_closed)
