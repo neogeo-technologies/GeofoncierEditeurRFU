@@ -13,7 +13,7 @@
     <x>0</x>
     <y>0</y>
     <width>350</width>
-    <height>190</height>
+    <height>192</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -25,7 +25,7 @@
   <property name="minimumSize">
    <size>
     <width>299</width>
-    <height>190</height>
+    <height>192</height>
    </size>
   </property>
   <property name="maximumSize">
@@ -144,7 +144,11 @@
 de départ sur la carte</string>
       </property>
       <property name="text">
-       <string>✲</string>
+       <string/>
+      </property>
+      <property name="icon">
+       <iconset resource="../resources.qrc">
+        <normaloff>:/resources/select</normaloff>:/resources/select</iconset>
       </property>
       <property name="checkable">
        <bool>true</bool>
@@ -164,7 +168,11 @@ de départ sur la carte</string>
 d'arrivé sur la carte</string>
       </property>
       <property name="text">
-       <string>✱</string>
+       <string/>
+      </property>
+      <property name="icon">
+       <iconset resource="../resources.qrc">
+        <normaloff>:/resources/select</normaloff>:/resources/select</iconset>
       </property>
       <property name="checkable">
        <bool>true</bool>
@@ -210,6 +218,4 @@ d'arrivé sur la carte</string>
    </layout>
   </widget>
  </widget>
- <resources/>
- <connections/>
 </ui>

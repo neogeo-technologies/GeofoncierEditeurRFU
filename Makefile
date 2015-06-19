@@ -73,6 +73,11 @@ EXTRAS = \
 	icon.png \
 	resources/btn_add_edge.png \
 	resources/btn_add_vtx.png \
+	resources/btn_conn_rfu.png \
+	resources/dl.png \
+	resources/reset.png \
+	resources/select.png \
+	resources/ul.png \
 	resources/underline.png \
 	metadata.txt
 
@@ -214,6 +219,7 @@ clean:
 	@echo "------------------------------------"
 	@echo "Removing uic and rcc generated files"
 	@echo "------------------------------------"
+	rm *.pyc
 	rm $(COMPILED_UI_FILES) $(COMPILED_RESOURCE_FILES)
 
 doc:

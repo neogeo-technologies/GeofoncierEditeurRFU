@@ -71,8 +71,8 @@ class EditorRFUGeofoncier:
         # Create action(s)..
 
         self.action_connector = QAction(
-                    QIcon(r":/plugins/EditorRFUGeofoncier/icon.png"),
-                    u"Éditeur RFU", self.iface.mainWindow())
+            QIcon(r":/resources/btn_conn_rfu"),
+            u"Éditeur RFU", self.iface.mainWindow())
         self.action_connector.setEnabled(True)
 
         self.rfu = RFUDockWidget(self.map_layer_registry)
@@ -80,12 +80,12 @@ class EditorRFUGeofoncier:
         self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.rfu)
 
         self.action_vtx_creator = QAction(
-            QIcon(r":/plugins/EditorRFUGeofoncier/resources/btn_add_vtx.png"),
+            QIcon(r":/resources/btn_add_vtx"),
             u"Nouveau nœud RFU", self.iface.mainWindow())
         self.action_vtx_creator.setEnabled(False)
 
         self.action_edge_creator = QAction(
-            QIcon(r":/plugins/EditorRFUGeofoncier/resources/btn_add_edge.png"),
+            QIcon(r":/resources/btn_add_edge"),
             u"Nouvelle limite RFU", self.iface.mainWindow())
         self.action_edge_creator.setEnabled(False)
         self.action_edge_creator.setCheckable(True)

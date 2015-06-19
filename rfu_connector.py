@@ -34,7 +34,6 @@ from qgis.core import QgsGeometry
 from qgis.core import QgsExpression
 from qgis.core import QgsPalLayerSettings
 
-
 import tools
 from login import GeoFoncierAPILogin
 
