@@ -6,7 +6,7 @@
         <file alias="dl">resources/dl.png</file>
         <file alias="reset">resources/reset.png</file>
         <file alias="select">resources/select.png</file>
-        <file alias="um">resources/ul.png</file>
+        <file alias="ul">resources/ul.png</file>
         <file alias="underline">resources/underline.png</file>
     </qresource>
 </RCC>
