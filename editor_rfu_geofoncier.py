@@ -74,10 +74,7 @@ class EditorRFUGeofoncier:
             QIcon(r":/resources/btn_conn_rfu"),
             u"Éditeur RFU", self.iface.mainWindow())
         self.action_connector.setEnabled(True)
-
-        self.rfu = RFUDockWidget(self.map_layer_registry)
-        self.rfu.setObjectName(r"RFUDockWidget")
-        self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.rfu)
+        self.action_connector.setCheckable(True)
 
         self.action_vtx_creator = QAction(
             QIcon(r":/resources/btn_add_vtx"),
@@ -100,7 +97,7 @@ class EditorRFUGeofoncier:
         # self.canvas.mapToolSet.connect(self.deactivate_tool)
         self.map_layer_registry.layersRemoved.connect(self.on_layers_removed)
 
-        self.action_connector.triggered.connect(self.rfu_on_triggered)
+        self.action_connector.triggered[bool].connect(self.tool_rfu_on_triggered)
         self.action_vtx_creator.triggered.connect(self.tool_vtx_creator_on_triggered)
         self.action_edge_creator.triggered[bool].connect(self.tool_edge_creator_on_triggered)
 
@@ -180,12 +177,23 @@ class EditorRFUGeofoncier:
     # On action signals
     # =================
 
-    def rfu_on_triggered(self):
+    def tool_rfu_on_triggered(self, checked):
 
-        if self.rfu.isVisible():
-            self.rfu.hide()
-        else:
+        if checked and not self.rfu:
+            self.rfu = RFUDockWidget(self.map_layer_registry)
+            self.rfu.setObjectName(r"RFUDockWidget")
+            self.iface.addDockWidget(Qt.TopLeftDockWidgetArea, self.rfu)
+            self.rfu.closed.connect(self.rfu_on_closed)
+
+        if checked and self.rfu:
             self.rfu.show()
+
+        if not checked:
+            self.rfu.hide()
+
+    def rfu_on_closed(self):
+
+        self.action_connector.setChecked(False)
 
     def tool_vtx_creator_on_triggered(self):
 

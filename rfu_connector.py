@@ -12,7 +12,7 @@ from urlparse import urlparse
 from urlparse import parse_qs
 
 from PyQt4 import uic
-# from PyQt4.QtCore import pyqtSignal
+from PyQt4.QtCore import pyqtSignal
 from PyQt4.QtCore import QVariant
 # from PyQt4.QtCore import QDateTime
 # from PyQt4.QtCore import QDate
@@ -44,6 +44,8 @@ gui_dckwdgt_rfu_connector, _ = uic.loadUiType(
 
 class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
+    closed = pyqtSignal()
+
     def __init__(self, map_layer_registry, conn=None, parent=None):
 
         super(RFUDockWidget, self).__init__(parent)
@@ -74,6 +76,10 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         self.downloadPushButton.clicked.connect(self.on_downloaded)
         self.permalinkLineEdit.returnPressed.connect(self.on_downloaded)
+
+    def closeEvent(self, event):
+
+        self.closed.emit()
 
     def open_connection(self):
         """Call GeoFoncierAPILogin() ie. the `Sign In` DialogBox.
