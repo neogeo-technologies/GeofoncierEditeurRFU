@@ -79,10 +79,22 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         self.downloadPushButton.clicked.connect(self.on_downloaded)
         self.permalinkLineEdit.returnPressed.connect(self.on_downloaded)
+        self.projComboBox.currentIndexChanged.connect(self.set_destination_crs)
 
     def closeEvent(self, event):
 
         self.closed.emit()
+
+    def set_destination_crs(self, j):
+
+        for i, e in enumerate(self.ellips_acronym):
+            if i == j:
+                epsg = int(e[1])
+                continue
+
+        crs = QgsCoordinateReferenceSystem(epsg, QgsCoordinateReferenceSystem.EpsgCrsId)
+        self.canvas.mapRenderer().setDestinationCrs(crs)
+        self.canvas.zoomToFullExtent()
 
     def open_connection(self):
         """Call GeoFoncierAPILogin() ie. the `Sign In` DialogBox.

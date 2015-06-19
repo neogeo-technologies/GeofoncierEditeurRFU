@@ -54,6 +54,9 @@ class EditorRFUGeofoncier:
         self.rfu = None
         self.edge_creator = None
 
+        # Activate 'On The Fly'
+        self.canvas.mapRenderer().setProjectionsEnabled(True)
+
     def unload(self):
 
         # Remove the plugin menu item and icon..
