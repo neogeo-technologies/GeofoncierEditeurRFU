@@ -72,7 +72,7 @@ class EditorRFUGeofoncier:
 
         self.action_connector = QAction(
             QIcon(r":/resources/btn_conn_rfu"),
-            u"Éditeur RFU", self.iface.mainWindow())
+            u"Connecteur RFU", self.iface.mainWindow())
         self.action_connector.setEnabled(True)
         self.action_connector.setCheckable(True)
 
