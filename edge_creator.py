@@ -7,7 +7,6 @@
 import os
 
 from PyQt4 import uic
-from PyQt4.QtCore import pyqtSignal
 from PyQt4.QtCore import Qt
 from PyQt4.QtCore import QPyNullVariant
 from PyQt4.QtGui import QDockWidget
@@ -23,8 +22,6 @@ gui_dckwdgt_edge_creator, _ = uic.loadUiType(
 
 
 class EdgeCreator(QDockWidget, gui_dckwdgt_edge_creator):
-
-    closed = pyqtSignal()
 
     def __init__(self, canvas, l_vertex, l_edge,
                  user=None, auth_creator=[], parent=None):

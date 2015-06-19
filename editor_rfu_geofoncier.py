@@ -102,7 +102,7 @@ class EditorRFUGeofoncier:
 
         self.action_connector.triggered.connect(self.rfu_on_triggered)
         self.action_vtx_creator.triggered.connect(self.tool_vtx_creator_on_triggered)
-        self.action_edge_creator.triggered.connect(self.tool_edge_creator_on_triggered)
+        self.action_edge_creator.triggered[bool].connect(self.tool_edge_creator_on_triggered)
 
         # Initialize current layer to None (See switch_editing())..
         self.current_layer = None
@@ -204,38 +204,23 @@ class EditorRFUGeofoncier:
         if not dlg_vtx_creator.exec_():
             return None
 
-    def tool_edge_creator_on_triggered(self):
+    def tool_edge_creator_on_triggered(self, checked=False):
 
-        # >>> BACKUP: edge_creator.py_dlg_backup
-        #
-        # dlg_edge_creator = EdgeCreator(
-        #                     self.canvas,
-        #                     self.rfu.layers[1],
-        #                     self.rfu.layers[0].getFeatures(),
-        #                     user=self.rfu.conn.user,
-        #                     auth_creator=self.rfu.auth_creator)
-        #
-        # dlg_edge_creator.show()
-        #
-        # dlg_edge_creator.vtx_start_selected.connect(self.on_vtx_start_selected)
-        # dlg_edge_creator.vtx_end_selected.connect(self.on_vtx_end_selected)
-        #
-        # if not dlg_edge_creator.exec_():
-        #     return None
-        #
-        # if self.edge_creator:
-        #     return self.action_edge_creator.setChecked(True)
+        if not checked:
+            self.edge_creator.close()
+            self.edge_creator = None
 
-        self.edge_creator = EdgeCreator(
-                                self.canvas,
-                                self.rfu.layers[0],
-                                self.rfu.layers[1],
-                                user=self.rfu.conn.user,
-                                auth_creator=self.rfu.auth_creator)
+        if checked:
+            self.edge_creator = EdgeCreator(
+                                    self.canvas,
+                                    self.rfu.layers[0],
+                                    self.rfu.layers[1],
+                                    user=self.rfu.conn.user,
+                                    auth_creator=self.rfu.auth_creator)
 
-        self.edge_creator.setObjectName(r"EdgeCreatorDockWidget")
-        self.edge_creator.destroyed.connect(self.on_edge_creator_destroyed)
-        self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.edge_creator)
+            self.edge_creator.setObjectName(r"EdgeCreatorDockWidget")
+            self.edge_creator.destroyed.connect(self.on_edge_creator_destroyed)
+            self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.edge_creator)
 
     def on_edge_creator_destroyed(self):
 
