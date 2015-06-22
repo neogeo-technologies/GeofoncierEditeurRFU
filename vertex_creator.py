@@ -8,6 +8,7 @@ import os
 
 from PyQt4 import uic
 from PyQt4.QtCore import pyqtSignal
+from PyQt4.QtCore import QPyNullVariant
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import QDialog
 from PyQt4.QtGui import QColor
