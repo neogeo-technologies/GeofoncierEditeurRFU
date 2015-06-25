@@ -8,6 +8,7 @@ import os
 
 from PyQt4 import uic
 from PyQt4.QtCore import pyqtSignal
+from PyQt4.QtCore import QPyNullVariant
 from PyQt4.QtCore import Qt
 from PyQt4.QtGui import QDialog
 from PyQt4.QtGui import QColor
@@ -96,9 +97,12 @@ class VertexCreator(QDialog, gui_dlg_vertex_creator):
         som_repres_plane = self.ellips_acronym[self.ellipsComboBox.currentIndex()][0]
         som_prec_rattcht = int(self.precision_class[self.precisionClassComboBox.currentIndex()][0])
 
+        epsg = int(self.ellips_acronym[self.ellipsComboBox.currentIndex()][1])
+
         # Create point geometry..
-        point = tools.reproj(QgsPoint(som_coord_est, som_coord_nord),
-                             tools.acronym_to_epsg(som_repres_plane), 4326)
+        #point = tools.reproj(QgsPoint(som_coord_est, som_coord_nord),
+        #                     tools.acronym_to_epsg(som_repres_plane), 4326)
+        point = tools.reproj(QgsPoint(som_coord_est, som_coord_nord), epsg, 4326)
 
         # Create the feature..
         vertex = QgsFeature()

@@ -70,19 +70,19 @@ def reproj(qgsgeom, crs_in, crs_out):
     return x.transform(qgsgeom)
 
 
-def acronym_to_epsg(acronym):
-
-    d = {r"RGF93CC42": 3942,
-         r"RGF93CC43": 3943,
-         r"RGF93CC44": 3944,
-         r"RGF93CC45": 3945,
-         r"RGF93CC46": 3946,
-         r"RGF93CC47": 3947,
-         r"RGF93CC48": 3948,
-         r"RGF93CC49": 3949,
-         r"RGF93CC50": 3950}
-
-    return d[acronym]
+#def acronym_to_epsg(acronym):
+#
+#    d = {r"RGF93CC42": 3942,
+#         r"RGF93CC43": 3943,
+#         r"RGF93CC44": 3944,
+#         r"RGF93CC45": 3945,
+#         r"RGF93CC46": 3946,
+#         r"RGF93CC47": 3947,
+#         r"RGF93CC48": 3948,
+#         r"RGF93CC49": 3949,
+#         r"RGF93CC50": 3950}
+#
+#    return d[acronym]
 
 
 def get_feature_by_id(qgslayer, qgsft_fid):
