@@ -87,6 +87,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
     def set_destination_crs(self, j):
 
+        epsg = 4326 # by default
         for i, e in enumerate(self.ellips_acronym):
             if i == j:
                 epsg = int(e[1])
@@ -124,7 +125,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         if not self.conn:
             return None
 
-        # https://pro.geofoncier.fr/index.php?
+        # https://pro.geofoncier.fr/index.php?&centre=-196406,5983255&context=metropole
         #    &echelle=18056
         #    &centre=-196406,5983255
         #    &context=metropole
