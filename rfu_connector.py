@@ -125,12 +125,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         if not self.conn:
             return None
 
-        # https://pro.geofoncier.fr/index.php?&centre=-196406,5983255&context=metropole
-        #    &echelle=18056
-        #    &centre=-196406,5983255
-        #    &context=metropole
-        #    &layers=RFU_FXX,PCI_VECTEUR
-
+        #url = u"https://pro.geofoncier.fr/index.php?&centre=-196406,5983255&context=metropole"
         url = self.permalinkLineEdit.text()
 
         if not url:
@@ -352,12 +347,23 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
     def on_uploaded(self):
 
+        # Ensure that the action is intentional..
+        msg = (u"Vous êtes sur le point de soumettre "
+               u"les modifications au serveur GéoFoncier. "
+               u"Souhaitez-vous poursuivre cette action ?")
+
+        resp = QMessageBox.question(self, r"Question", msg,
+                                    QMessageBox.Yes, QMessageBox.No)
+        if resp != QMessageBox.Yes:
+            return False
+
         # Stop editing mode..
         for layer in self.layers:
             if layer.isEditable():
-                msg = (u"Veuillez fermer le mode d'édition et valider "
-                       u"vos modification avant de poursuivre.")
-                return QMessageBox.warning(self, r"Warning", msg)
+                #msg = (u"Veuillez fermer le mode d'édition et valider "
+                #       u"vos modification avant de poursuivre.")
+                #return QMessageBox.warning(self, r"Warning", msg)
+                layer.commitChanges()
 
         if (self.edges_added
                 or self.vertices_added
@@ -371,19 +377,13 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             msg = (u"Aucune modification des données n'est détecté.")
             return QMessageBox.warning(self, r"Warning", msg)
 
-        # Ensure that the action is intentional..
-        msg = (u"Vous êtes sur le point de soumettre "
-               u"les modifications au serveur GéoFoncier. "
-               u"Souhaitez-vous poursuivre cette action ?")
-
-        resp = QMessageBox.question(self, r"Question", msg,
-                                    QMessageBox.Yes, QMessageBox.No)
-        if resp != QMessageBox.Yes:
-            return False
-
         ul = self.upload()
         if ul != True:
             return None
+
+        for layer in self.layers:
+            if not layer.isEditable():
+                layer.startEditing()
 
         QMessageBox.information(
                     self, u"Information",
