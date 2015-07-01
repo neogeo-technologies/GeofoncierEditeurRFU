@@ -119,18 +119,17 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
     def download(self):
 
+        #url = u"https://pro.geofoncier.fr/index.php?&centre=-196406,5983255&context=metropole"
+        url = self.permalinkLineEdit.text()
+        if not url:
+            msg = u"Veuillez renseigner le permalien."
+            return QMessageBox.warning(self, r"Warning", msg)
+
         # Connect to API if none..
         if not self.conn:
             self.conn = self.open_connection()
         if not self.conn:
             return None
-
-        #url = u"https://pro.geofoncier.fr/index.php?&centre=-196406,5983255&context=metropole"
-        url = self.permalinkLineEdit.text()
-
-        if not url:
-            msg = u"Veuillez renseigner le permalien."
-            return QMessageBox.warning(self, r"Warning", msg)
 
         # Test if permalink is valid (&centre and &context are mandatory)..
         pattern = r"^(https?:\/\/(\w+[\w\-\.\:\/])+)\?((\&+)?(context|centre|\w+)\=?([\w\-\.\:\,]+?)?)+(\&+)?$"
