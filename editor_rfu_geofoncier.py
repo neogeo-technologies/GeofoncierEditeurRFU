@@ -75,18 +75,18 @@ class EditorRFUGeofoncier:
 
         self.action_connector = QAction(
             QIcon(r":/resources/btn_conn_rfu"),
-            u"Connecteur RFU", self.iface.mainWindow())
+            u"Connection à l'API Géofoncier", self.iface.mainWindow())
         self.action_connector.setEnabled(True)
         self.action_connector.setCheckable(True)
 
         self.action_vtx_creator = QAction(
             QIcon(r":/resources/btn_add_vtx"),
-            u"Nouveau nœud RFU", self.iface.mainWindow())
+            u"Ajouter un nœud RFU", self.iface.mainWindow())
         self.action_vtx_creator.setEnabled(False)
 
         self.action_edge_creator = QAction(
             QIcon(r":/resources/btn_add_edge"),
-            u"Nouvelle limite RFU", self.iface.mainWindow())
+            u"Ajouter une limite RFU", self.iface.mainWindow())
         self.action_edge_creator.setEnabled(False)
         self.action_edge_creator.setCheckable(True)
 
