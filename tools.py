@@ -26,7 +26,6 @@ def request(url, method=None, user_agent=None, user=None,
         url = r"%s?%s" % (url, urllib.urlencode(params))
 
     if data:
-        print data
         data = urllib.urlencode(data)
 
     req = urllib2.Request(url, data)
