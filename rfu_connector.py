@@ -384,12 +384,12 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             if not layer.isEditable():
                 layer.startEditing()
 
-        QMessageBox.information(
-                    self, u"Information",
-                    u"Les modifications du RFU sont enregistrées.")
+        #QMessageBox.information(
+        #            self, u"Information",
+        #            u"Les modifications du RFU sont enregistrées.")
 
-        # self.reset()
-        # self.download()
+        #self.reset()
+        #self.download()
 
         # self.permalinkLineEdit.setDisabled(True)
         # self.downloadPushButton.setDisabled(True)
@@ -471,6 +471,12 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             else:
               msg = str(resp)
             return QMessageBox.warning(self, r"Warning", msg)
+        # Returns log info..
+        tree = EltTree.fromstring(edit.read())
+        msgs_log = []
+        for log in tree.iter(r"log"):
+            msgs_log.append(u"%s: %s" % (log.attrib[u"type"], log.text))
+        QMessageBox.information(self, r"Information", u"\r".join(msgs_log))
 
         # Close the changeset..
         close_changeset = self.conn.close_changeset(self.zone, changeset_id)
