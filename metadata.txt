@@ -7,12 +7,12 @@
 # This file should be included when you package your plugin.# Mandatory items:
 
 [general]
-name=Editor RFU Geofoncier
+name=Éditeur RFU Géofoncier
 qgisMinimumVersion=2.0
-description=Editor RFU Geofoncier
+description=Éditeur RFU Géofoncier
 version=0.1
-author=Geofoncier
-email=contact@geofoncier@fr
+author=Géofoncier
+email=contact@geofoncier.fr
 
 # End of mandatory metadata
 
@@ -22,12 +22,13 @@ email=contact@geofoncier@fr
 # changelog=
 
 # Tags are comma separated with spaces allowed
-tags=
+tags=Géofoncier,RFU
 
-homepage=
-tracker=
-repository=
+homepage=https://github.com/neogeo-technologies/GeofoncierEditeurRFU
+tracker=https://github.com/neogeo-technologies/GeofoncierEditeurRFU/issues
+repository=https://github.com/neogeo-technologies/GeofoncierEditeurRFU.git
 icon=icon.png
+
 # experimental flag
 experimental=False
 
