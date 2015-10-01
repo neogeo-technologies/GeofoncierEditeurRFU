@@ -175,17 +175,14 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                                     bbox.xMaximum(), bbox.yMaximum())
 
         if resp.code != 200:
-            # Catch the error specified by the API..
-            e = tools.tree_parser(resp.read(), xpath=r"./erreur")
-            if e.text:
-                msg = e.text
-            else:
-                # Or error returned by the server (all other cases)..
-                msg = str(resp)
-            # Then display the error in a message box..
-            return QMessageBox.warning(self, r"Warning", msg)
+            return QMessageBox.warning(self, r"Warning", resp.read())
 
-        xml = resp.read()
+        tree = EltTree.fromstring(resp.read())
+
+        # Check if error
+        err = tree.find(r"./erreur")
+        if err:
+            return QMessageBox.warning(self, r"Warning", err.text)
 
         # isvalid = self.extraction_isvalid(xml)
         # if isvalid is False:
@@ -193,7 +190,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         #     return QMessageBox.warning(self, r"Warning", msg)
 
         # Create layers..
-        self.layers = self.extract_layers(xml)
+        self.layers = self.extract_layers(tree)
         self.l_vertex = self.layers[0]
         self.l_edge = self.layers[1]
 
@@ -215,17 +212,13 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         resp = self.conn.get_capabilities(self.zone)
 
         if resp.code != 200:
-            # Catch the error specified by the API..
-            e = tools.tree_parser(resp.read(), xpath=r"./erreur")
-            if e.text:
-                msg = e.text
-            else:
-                # Or error returned by the server (all other cases)..
-                msg = str(resp)
-            # Then display the error in a message box..
-            return QMessageBox.warning(self, r"Warning", msg)
+            return QMessageBox.warning(self, r"Warning", resp.read())
 
         tree = EltTree.fromstring(resp.read())
+
+        err = tree.find(r"./erreur")
+        if err:
+            return QMessageBox.warning(self, r"Warning", err.text)
 
         for entry in tree.findall(r"./classe_rattachement/classe"):
             t = (entry.attrib[r"som_precision_rattachement"], entry.text)
@@ -264,7 +257,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                 # Activate 'On The Fly'
                 self.canvas.mapRenderer().setProjectionsEnabled(True)
 
-                # Then change the CRS in canvas
+                # Then chane the CRS in canvas
                 crs = QgsCoordinateReferenceSystem(int(e[1]), QgsCoordinateReferenceSystem.EpsgCrsId)
                 self.canvas.mapRenderer().setDestinationCrs(crs)
 
@@ -444,19 +437,20 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         # Open a new Changeset..
         opencs = self.conn.open_changeset(self.zone)
-        if opencs.code != 200:
-            tree = EltTree.fromstring(opencs.read())
-            elt_err = tree.find(r"./erreur")
-            if elt_err.text:
-                msg = elt_err.text
-            else:
-              msg = str(resp)
-            return QMessageBox.warning(self, r"Warning", msg)
 
-        treeterator = EltTree.fromstring(opencs.read()).getiterator(tag=r"changeset")
+        if opencs.code != 200:
+            return QMessageBox.warning(self, r"Warning", opencs.read())
+
+        tree = EltTree.fromstring(opencs.read())
+
+        err = tree.find(r"./erreur")
+        if err:
+            return QMessageBox.warning(self, r"Warning", err.text)
+
+        treeterator = tree.getiterator(tag=r"changeset")
         if len(treeterator) != 1:
-            msg = u"Une erreur est survenue."
-            return QMessageBox.warning(self, r"Warning", msg)
+            # TODO
+            return QMessageBox.warning(self, r"Warning", u"Une erreur est survenue.")
 
         changeset_id = treeterator[0].attrib[r"id"]
         root.attrib[r"changeset"] = changeset_id
@@ -464,15 +458,14 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         # Send data..
         edit = self.conn.edit(self.zone, EltTree.tostring(root))
         if edit.code != 200:
-            tree = EltTree.fromstring(edit.read())
-            elt_err = tree.find(r"./erreur")
-            if elt_err.text:
-                msg = elt_err.text
-            else:
-              msg = str(resp)
-            return QMessageBox.warning(self, r"Warning", msg)
+            return QMessageBox.warning(self, r"Warning", resp.read())
+
+        err = EltTree.fromstring(edit.read()).find(r"./erreur")
+        if err:
+            # Then display the error in a message box..
+            return QMessageBox.warning(self, r"Warning", err.text)
+
         # Returns log info..
-        tree = EltTree.fromstring(edit.read())
         msgs_log = []
         for log in tree.iter(r"log"):
             msgs_log.append(u"%s: %s" % (log.attrib[u"type"], log.text))
@@ -481,13 +474,12 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         # Close the changeset..
         close_changeset = self.conn.close_changeset(self.zone, changeset_id)
         if close_changeset.code != 200:
-            tree = EltTree.fromstring(close_changeset.read())
-            elt_err = tree.find(r"./erreur")
-            if elt_err.text:
-                msg = elt_err.text
-            else:
-              msg = str(resp)
-            return QMessageBox.warning(self, r"Warning", msg)
+            return QMessageBox.warning(self, r"Warning", close_changeset.read())
+
+        err = EltTree.fromstring(close_changeset.read()).find(r"./erreur")
+        if err:
+            # Then display the error in a message box..
+            return QMessageBox.warning(self, r"Warning", err.text)
 
         # Reset all..
         self.edges_added = {}
@@ -499,10 +491,8 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         return True
 
-    def extract_layers(self, xml):
+    def extract_layers(self, tree):
         """Return a list of RFU layers."""
-
-        tree = EltTree.fromstring(xml)
 
         # Create vector layers..
         l_vertex = QgsVectorLayer(r"Point?crs=epsg:4326&index=yes",
