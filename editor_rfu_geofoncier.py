@@ -138,16 +138,16 @@ class EditorRFUGeofoncier:
         if self.current_layer is not None:
             old_layer = self.current_layer
             old_layer.committedFeaturesAdded.disconnect(self.on_committed_features_added)
-            #old_layer.committedFeaturesRemoved.disconnect(self.on_committed_features_removed)
-            QObject.disconnect(old_layer, SIGNAL(r"committedFeaturesRemoved()"), self.on_committed_features_removed)
+            old_layer.committedFeaturesRemoved.disconnect(self.on_committed_features_removed)
+            #QObject.disconnect(old_layer, SIGNAL(r"committedFeaturesRemoved()"), self.on_committed_features_removed)
             # old_layer.featureAdded.disconnect(self.on_feature_added)
             old_layer.attributeValueChanged.disconnect(self.on_attribute_value_changed)
             old_layer.geometryChanged.disconnect(self.on_geometry_changed)
 
         self.current_layer = layer
         layer.committedFeaturesAdded.connect(self.on_committed_features_added)
-        #layer.committedFeaturesRemoved.connect(self.on_committed_features_removed)
-        QObject.connect(layer, SIGNAL(r"committedFeaturesRemoved()"), self.on_committed_features_removed)
+        layer.committedFeaturesRemoved.connect(self.on_committed_features_removed)
+        #QObject.connect(layer, SIGNAL(r"committedFeaturesRemoved()"), self.on_committed_features_removed)
         # layer.featureAdded.connect(self.on_feature_added)
         layer.attributeValueChanged.connect(self.on_attribute_value_changed)
         layer.geometryChanged.connect(self.on_geometry_changed)
