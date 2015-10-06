@@ -505,7 +505,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         # Send data..
         edit = self.conn.edit(self.zone, EltTree.tostring(root))
         if edit.code != 200:
-            return QMessageBox.warning(self, r"Warning", resp.read())
+            return QMessageBox.warning(self, r"Warning", edit.read())
 
         tree = EltTree.fromstring(edit.read())
         err = tree.find(r"./erreur")
