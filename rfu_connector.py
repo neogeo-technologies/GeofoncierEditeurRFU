@@ -35,6 +35,7 @@ from qgis.core import QgsFeature
 from qgis.core import QgsGeometry
 from qgis.core import QgsExpression
 from qgis.core import QgsPalLayerSettings
+from qgis.gui import QgsMapCanvasLayer
 
 import tools
 from login import GeoFoncierAPILogin
@@ -62,6 +63,8 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.dflt_ellips_acronym = None
         self.nature = []
         self.auth_creator = []
+
+        self.url = None
 
         self.l_vertex = None
         self.l_edge = None
@@ -95,7 +98,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         crs = QgsCoordinateReferenceSystem(epsg, QgsCoordinateReferenceSystem.EpsgCrsId)
         self.canvas.mapRenderer().setDestinationCrs(crs)
-        self.canvas.zoomToFullExtent()
+        #self.canvas.zoomToFullExtent()
 
     def open_connection(self):
         """Call GeoFoncierAPILogin() ie. the `Sign In` DialogBox.
@@ -117,13 +120,16 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         # Download data
         self.download()
 
-    def download(self):
+    def download(self, url=None):
 
-        #url = u"https://pro.geofoncier.fr/index.php?&centre=-196406,5983255&context=metropole"
-        url = self.permalinkLineEdit.text()
+        if not url:
+            #url = u"https://pro.geofoncier.fr/index.php?&centre=-196406,5983255&context=metropole"
+            url = self.permalinkLineEdit.text()
         if not url:
             msg = u"Veuillez renseigner le permalien."
             return QMessageBox.warning(self, r"Warning", msg)
+
+        self.url = url
 
         # Connect to API if none..
         if not self.conn:
@@ -133,12 +139,12 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         # Test if permalink is valid (&centre and &context are mandatory)..
         pattern = r"^(https?:\/\/(\w+[\w\-\.\:\/])+)\?((\&+)?(context|centre|\w+)\=?([\w\-\.\:\,]+?)?)+(\&+)?$"
-        if not re.match(pattern, url):
+        if not re.match(pattern, self.url):
             msg = u"Le permalien n'est pas valide."
             return QMessageBox.warning(self, r"Warning", msg)
 
         # Extract params from url..
-        params = parse_qs(urlparse(url).query)
+        params = parse_qs(urlparse(self.url).query)
 
         # Extract zone (&context)..
         self.zone = str(params[r"context"][0])
@@ -194,8 +200,16 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.l_vertex = self.layers[0]
         self.l_edge = self.layers[1]
 
-        # Then add layers to the map..
+        # Add layer to the registry
         self.map_layer_registry.addMapLayers(self.layers)
+
+        # Set the map canvas layer set
+        self.canvas.setLayerSet([QgsMapCanvasLayer(self.l_vertex),
+                                 QgsMapCanvasLayer(self.l_edge)])
+
+        # Set extent
+        self.canvas.setExtent(QgsRectangle(bbox.xMinimum(), bbox.yMinimum(),
+                                           bbox.xMaximum(), bbox.yMaximum()))
 
         # Activate snapping..
         # for layer in self.layers:
@@ -373,16 +387,20 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         if ul != True:
             return None
 
-        for layer in self.layers:
-            if not layer.isEditable():
-                layer.startEditing()
+        #for layer in self.layers:
+        #    if not layer.isEditable():
+        #        layer.startEditing()
 
         #QMessageBox.information(
         #            self, u"Information",
         #            u"Les modifications du RFU sont enregistrées.")
 
-        #self.reset()
-        #self.download()
+        res = self.reset()
+        if res != True:
+            return None
+
+        self.download(url=self.url)
+        self.canvas.zoomToFullExtent()
 
         # self.permalinkLineEdit.setDisabled(True)
         # self.downloadPushButton.setDisabled(True)
@@ -460,7 +478,8 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         if edit.code != 200:
             return QMessageBox.warning(self, r"Warning", resp.read())
 
-        err = EltTree.fromstring(edit.read()).find(r"./erreur")
+        tree = EltTree.fromstring(edit.read())
+        err = tree.find(r"./erreur")
         if err:
             # Then display the error in a message box..
             return QMessageBox.warning(self, r"Warning", err.text)
@@ -476,7 +495,8 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         if close_changeset.code != 200:
             return QMessageBox.warning(self, r"Warning", close_changeset.read())
 
-        err = EltTree.fromstring(close_changeset.read()).find(r"./erreur")
+        tree = EltTree.fromstring(close_changeset.read())
+        err = tree.find(r"./erreur")
         if err:
             # Then display the error in a message box..
             return QMessageBox.warning(self, r"Warning", err.text)

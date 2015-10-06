@@ -117,37 +117,43 @@ class EditorRFUGeofoncier:
             self.switch_editing(layer)
             self.action_vtx_creator.setEnabled(True)
             self.action_edge_creator.setEnabled(False)
-            QObject.connect(layer, SIGNAL(r"editingStopped()"), self.on_toggled)
-            QObject.disconnect(layer, SIGNAL(r"editingStarted()"), self.on_toggled)
+            #QObject.connect(layer, SIGNAL(r"editingStopped()"), self.on_toggled)
+            layer.editingStopped.connect(self.on_toggled)
+            #QObject.disconnect(layer, SIGNAL(r"editingStarted()"), self.on_toggled)
+            layer.editingStarted.connect(self.on_toggled)
 
         elif layer.isEditable() and layer == self.rfu.layers[1]:
             self.switch_editing(layer)
             self.action_vtx_creator.setEnabled(False)
             self.action_edge_creator.setEnabled(True)
-            QObject.connect(layer, SIGNAL(r"editingStopped()"), self.on_toggled)
-            QObject.disconnect(layer, SIGNAL(r"editingStarted()"), self.on_toggled)
+            #QObject.connect(layer, SIGNAL(r"editingStopped()"), self.on_toggled)
+            layer.editingStopped.connect(self.on_toggled)
+            #QObject.disconnect(layer, SIGNAL(r"editingStarted()"), self.on_toggled)
+            layer.editingStarted.connect(self.on_toggled)
 
         else:
             self.action_vtx_creator.setEnabled(False)
             self.action_edge_creator.setEnabled(False)
-            QObject.connect(layer, SIGNAL(r"editingStarted()"), self.on_toggled)
-            QObject.disconnect(layer, SIGNAL(r"editingStopped()"), self.on_toggled)
+            #QObject.connect(layer, SIGNAL(r"editingStopped()"), self.on_toggled)
+            layer.editingStopped.connect(self.on_toggled)
+            #QObject.disconnect(layer, SIGNAL(r"editingStarted()"), self.on_toggled)
+            layer.editingStarted.connect(self.on_toggled)
 
     def switch_editing(self, layer):
 
         if self.current_layer is not None:
             old_layer = self.current_layer
             old_layer.committedFeaturesAdded.disconnect(self.on_committed_features_added)
-            old_layer.committedFeaturesRemoved.disconnect(self.on_committed_features_removed)
             #QObject.disconnect(old_layer, SIGNAL(r"committedFeaturesRemoved()"), self.on_committed_features_removed)
+            old_layer.committedFeaturesRemoved.disconnect(self.on_committed_features_removed)
             # old_layer.featureAdded.disconnect(self.on_feature_added)
             old_layer.attributeValueChanged.disconnect(self.on_attribute_value_changed)
             old_layer.geometryChanged.disconnect(self.on_geometry_changed)
 
         self.current_layer = layer
         layer.committedFeaturesAdded.connect(self.on_committed_features_added)
-        layer.committedFeaturesRemoved.connect(self.on_committed_features_removed)
         #QObject.connect(layer, SIGNAL(r"committedFeaturesRemoved()"), self.on_committed_features_removed)
+        layer.committedFeaturesRemoved.connect(self.on_committed_features_removed)
         # layer.featureAdded.connect(self.on_feature_added)
         layer.attributeValueChanged.connect(self.on_attribute_value_changed)
         layer.geometryChanged.connect(self.on_geometry_changed)
@@ -163,7 +169,7 @@ class EditorRFUGeofoncier:
         # self.rfu.add_feature(self.current_layer.id(), feature)
 
     def on_geometry_changed(self, fid, geom):
-        # TODO: Forbidden
+        print "-> on_geometry_changed(self, %s, %s)" % (fid, geom)
         pass
 
     def on_attribute_value_changed(self, fid, field_idx, value):
