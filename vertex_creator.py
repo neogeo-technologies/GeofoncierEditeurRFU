@@ -48,7 +48,7 @@ class VertexCreator(QDialog, gui_dlg_vertex_creator):
         self.yLineEdit.clear()
 
         for i, e in enumerate(self.ellips_acronym):
-            self.ellipsComboBox.addItem(e[1])
+            self.ellipsComboBox.addItem(e[2])
             if not dflt_ellips_acronym:
                 continue
             if dflt_ellips_acronym == e[0]:
