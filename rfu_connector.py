@@ -20,6 +20,7 @@ from PyQt4.QtGui import QColor
 from PyQt4.QtGui import QDockWidget
 from PyQt4.QtGui import QMessageBox
 from qgis.core import QgsCoordinateReferenceSystem
+from qgis.core import QgsFillSymbolV2
 from qgis.core import QgsRectangle
 # from qgis.core import QgsProject
 # from qgis.core import QgsSnapper
@@ -195,17 +196,29 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         #     msg = u"L'extraction RFU n'est pas valide."
         #     return QMessageBox.warning(self, r"Warning", msg)
 
+        # Create layers "Zone d'extraction"
+        self.l_bbox = QgsVectorLayer(r"Polygon?crs=epsg:4326&index=yes",
+                                     u"Zone d\'extraction", r"memory")
+        p_bbox = self.l_bbox.dataProvider()
+        ft_bbox = QgsFeature()
+        ft_bbox.setGeometry(QgsGeometry.fromRect(QgsRectangle(bbox.xMinimum(), bbox.yMinimum(),
+                                                              bbox.xMaximum(), bbox.yMaximum())))
+        p_bbox.addFeatures([ft_bbox])
+        self.l_bbox.updateFields()
+        self.l_bbox.updateExtents()
+
         # Create layers..
         self.layers = self.extract_layers(tree)
         self.l_vertex = self.layers[0]
         self.l_edge = self.layers[1]
 
         # Add layer to the registry
-        self.map_layer_registry.addMapLayers(self.layers)
+        self.map_layer_registry.addMapLayers([self.l_vertex, self.l_edge, self.l_bbox])
 
         # Set the map canvas layer set
         self.canvas.setLayerSet([QgsMapCanvasLayer(self.l_vertex),
-                                 QgsMapCanvasLayer(self.l_edge)])
+                                 QgsMapCanvasLayer(self.l_edge),
+                                 QgsMapCanvasLayer(self.l_bbox)])
 
         # Set extent
         self.canvas.setExtent(QgsRectangle(bbox.xMinimum(), bbox.yMinimum(),
