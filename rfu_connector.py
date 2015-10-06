@@ -36,6 +36,8 @@ from qgis.core import QgsFeature
 from qgis.core import QgsGeometry
 from qgis.core import QgsExpression
 from qgis.core import QgsPalLayerSettings
+from qgis.core import QgsSingleSymbolRendererV2
+from qgis.core import QgsInvertedPolygonRenderer
 from qgis.gui import QgsMapCanvasLayer
 
 import tools
@@ -196,14 +198,26 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         #     msg = u"L'extraction RFU n'est pas valide."
         #     return QMessageBox.warning(self, r"Warning", msg)
 
-        # Create layers "Zone d'extraction"
+        # Create layers "Masque d'extraction"
         self.l_bbox = QgsVectorLayer(r"Polygon?crs=epsg:4326&index=yes",
-                                     u"Zone d\'extraction", r"memory")
+                                     u"Masque d\'extraction", r"memory")
         p_bbox = self.l_bbox.dataProvider()
+
+        simple_symbol = QgsFillSymbolV2.createSimple({
+                                r"color": r"116,97,87,255",
+                                r"color_border": r"116,97,87,255",
+                                r"style": r"b_diagonal",
+                                r"style_border": r"dash"})
+
+        renderer_bbox = QgsInvertedPolygonRenderer(QgsSingleSymbolRendererV2(simple_symbol))
+
+        self.l_bbox.setRendererV2(renderer_bbox)
+
         ft_bbox = QgsFeature()
         ft_bbox.setGeometry(QgsGeometry.fromRect(QgsRectangle(bbox.xMinimum(), bbox.yMinimum(),
                                                               bbox.xMaximum(), bbox.yMaximum())))
         p_bbox.addFeatures([ft_bbox])
+
         self.l_bbox.updateFields()
         self.l_bbox.updateExtents()
 
