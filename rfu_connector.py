@@ -339,7 +339,9 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         # Remove RFU layers..
         try:
-            self.map_layer_registry.removeMapLayers([l.id() for l in self.layers])
+            #self.map_layer_registry.removeMapLayers([l.id() for l in self.layers])
+            self.map_layer_registry.removeMapLayers([
+                            self.l_vertex.id(), self.l_edge.id(), self.l_bbox.id()])
         except:
             pass
 
