@@ -8,6 +8,7 @@ import os
 import xml.etree.ElementTree as ElementTree
 
 from PyQt4 import uic
+from PyQt4.QtCore import pyqtSignal
 from PyQt4.QtGui import QDialog
 from PyQt4.QtGui import QMessageBox
 
@@ -20,6 +21,9 @@ gui_dlg_login, _ = uic.loadUiType(
 
 
 class GeoFoncierAPILogin(QDialog, gui_dlg_login):
+
+    closed = pyqtSignal()
+    opened = pyqtSignal()
 
     def __init__(self, parent=None):
 
@@ -35,6 +39,10 @@ class GeoFoncierAPILogin(QDialog, gui_dlg_login):
             self.rememberMeCheckBox.setChecked(True)
 
         self.signInPushButton.clicked.connect(self.sign_in)
+
+    def closeEvent(self, event):
+
+        self.closed.emit()
 
     def sign_in(self):
 
@@ -83,3 +91,5 @@ class GeoFoncierAPILogin(QDialog, gui_dlg_login):
 
         # Then..
         self.accept()
+
+        self.opened.emit()

@@ -71,6 +71,7 @@ UI_FILES = \
 
 EXTRAS = \
 	icon.png \
+	resources/btn_log_in.png \
 	resources/btn_add_edge.png \
 	resources/btn_add_vtx.png \
 	resources/btn_conn_rfu.png \

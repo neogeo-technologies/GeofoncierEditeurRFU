@@ -1,5 +1,6 @@
 <RCC>
     <qresource prefix="/resources" lang="fre">
+        <file alias="btn_log_in">resources/btn_log_in.png</file>
         <file alias="btn_add_edge">resources/btn_add_edge.png</file>
         <file alias="btn_add_vtx">resources/btn_add_vtx.png</file>
         <file alias="btn_conn_rfu">resources/btn_conn_rfu.png</file>

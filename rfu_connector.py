@@ -100,20 +100,20 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.canvas.mapRenderer().setDestinationCrs(crs)
         #self.canvas.zoomToFullExtent()
 
-    def open_connection(self):
-        """Call GeoFoncierAPILogin() ie. the `Sign In` DialogBox.
-        If accepted -> return a new APIClient() obj.
-
-        """
-        dlg_login = GeoFoncierAPILogin()
-        dlg_login.show()
-
-        # Test if failed..
-        if not dlg_login.exec_():
-            return None
-
-        # Then..
-        return dlg_login.conn
+    #def open_connection(self):
+    #    """Call GeoFoncierAPILogin() ie. the `Sign In` DialogBox.
+    #    If accepted -> return a new APIClient() obj.
+    #
+    #    """
+    #    dlg_login = GeoFoncierAPILogin()
+    #    dlg_login.show()
+    #
+    #    # Test if failed..
+    #    if not dlg_login.exec_():
+    #        return None
+    #
+    #    # Then..
+    #    return dlg_login.conn
 
     def on_downloaded(self):
 
@@ -132,10 +132,10 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.url = url
 
         # Connect to API if none..
-        if not self.conn:
-            self.conn = self.open_connection()
-        if not self.conn:
-            return None
+        #if not self.conn:
+        #    self.conn = self.open_connection()
+        #if not self.conn:
+        #    return None
 
         # Test if permalink is valid (&centre and &context are mandatory)..
         pattern = r"^(https?:\/\/(\w+[\w\-\.\:\/])+)\?((\&+)?(context|centre|\w+)\=?([\w\-\.\:\,]+?)?)+(\&+)?$"

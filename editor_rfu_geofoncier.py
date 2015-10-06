@@ -16,6 +16,8 @@ from PyQt4.QtCore import SIGNAL
 # from PyQt4.QtCore import QPyNullVariant
 from PyQt4.QtGui import QIcon
 from PyQt4.QtGui import QAction
+from PyQt4.QtGui import QMessageBox
+from PyQt4.QtGui import QWidget
 from qgis.core import QgsMapLayerRegistry
 
 import resources_rc
@@ -23,6 +25,8 @@ import tools
 from rfu_connector import RFUDockWidget
 from vertex_creator import VertexCreator
 from edge_creator import EdgeCreator
+
+from login import GeoFoncierAPILogin
 
 
 class EditorRFUGeofoncier:
@@ -51,6 +55,7 @@ class EditorRFUGeofoncier:
             if qVersion() > r"4.3.3":
                 QCoreApplication.installTranslator(self.translator)
 
+        self.conn = None
         self.rfu = None
         self.edge_creator = None
 
@@ -70,10 +75,16 @@ class EditorRFUGeofoncier:
 
         # Create action(s)..
 
+        self.action_login = QAction(
+            QIcon(r":/resources/btn_log_in"),
+            u"S'identifer", self.iface.mainWindow())
+        self.action_login.setEnabled(True)
+        self.action_login.setCheckable(True)
+
         self.action_connector = QAction(
             QIcon(r":/resources/btn_conn_rfu"),
             u"Connection à l'API Géofoncier", self.iface.mainWindow())
-        self.action_connector.setEnabled(True)
+        self.action_connector.setEnabled(False)
         self.action_connector.setCheckable(True)
 
         self.action_vtx_creator = QAction(
@@ -88,7 +99,8 @@ class EditorRFUGeofoncier:
         self.action_edge_creator.setCheckable(True)
 
         # Then add action(s) to the tool bar..
-        self.toolbar.addActions([self.action_connector,
+        self.toolbar.addActions([self.action_login,
+                                 self.action_connector,
                                  self.action_vtx_creator,
                                  self.action_edge_creator])
 
@@ -97,6 +109,7 @@ class EditorRFUGeofoncier:
         # self.canvas.mapToolSet.connect(self.deactivate_tool)
         self.map_layer_registry.layersRemoved.connect(self.on_layers_removed)
 
+        self.action_login.triggered.connect(self.tool_login_on_triggered)
         self.action_connector.triggered[bool].connect(self.tool_rfu_on_triggered)
         self.action_vtx_creator.triggered.connect(self.tool_vtx_creator_on_triggered)
         self.action_edge_creator.triggered[bool].connect(self.tool_edge_creator_on_triggered)
@@ -182,13 +195,65 @@ class EditorRFUGeofoncier:
     def on_layers_removed(self, layers):
         self.current_layer = None
 
+    # Login/logout
+    # ============
+
+    def open_connection(self):
+
+        dlg_login = GeoFoncierAPILogin()
+        dlg_login.closed.connect(self.dlg_login_on_closed)
+        dlg_login.opened.connect(self.dlg_login_on_opened)
+        dlg_login.show()
+
+        if not dlg_login.exec_():
+            return None
+
+        self.conn = dlg_login.conn
+        self.action_connector.setEnabled(True)
+
+    def close_connection(self):
+
+        msg = (u"Voulez-vous fermer votre session ?\n"
+               u"Attention, toute modification sera perdue.")
+        resp = QMessageBox.question(self.iface.mainWindow(), r"Question", msg,
+                                    QMessageBox.Yes, QMessageBox.No)
+        if resp != QMessageBox.Yes:
+            return False
+
+        # Close connection
+        if self.rfu:
+            self.rfu.reset()
+            self.rfu.close()
+            #if self.rfu.conn:
+            #    self.rfu.conn = None
+            self.action_connector.setChecked(False)
+            self.action_connector.setEnabled(False)
+
+        self.conn = None
+
     # On action signals
     # =================
+
+    def dlg_login_on_closed(self):
+
+        if self.conn == None:
+            self.action_login.setChecked(False)
+
+    def dlg_login_on_opened(self):
+
+        self.action_login.setChecked(True)
+
+    def tool_login_on_triggered(self, checked):
+
+        if checked:
+            self.open_connection()
+        else:
+            self.close_connection()
 
     def tool_rfu_on_triggered(self, checked):
 
         if checked and not self.rfu:
-            self.rfu = RFUDockWidget(self.canvas, self.map_layer_registry)
+            self.rfu = RFUDockWidget(self.canvas, self.map_layer_registry, conn=self.conn)
             self.rfu.setObjectName(r"RFUDockWidget")
             self.iface.addDockWidget(Qt.TopDockWidgetArea, self.rfu)
             self.rfu.closed.connect(self.rfu_on_closed)
