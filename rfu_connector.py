@@ -219,14 +219,13 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         # Create layers "Masque d'extraction"
         self.l_bbox = QgsVectorLayer(r"Polygon?crs=epsg:4326&index=yes",
-                                     u"Masque d\'extraction", r"memory")
+                                     u"Zone de travail", r"memory")
         p_bbox = self.l_bbox.dataProvider()
 
         simple_symbol = QgsFillSymbolV2.createSimple({
                                 r"color": r"116,97,87,255",
-                                r"color_border": r"116,97,87,255",
                                 r"style": r"b_diagonal",
-                                r"style_border": r"dash"})
+                                r"outline_style": r"no"})
 
         renderer_bbox = QgsInvertedPolygonRenderer(QgsSingleSymbolRendererV2(simple_symbol))
 
