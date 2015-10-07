@@ -19,6 +19,7 @@ from PyQt4.QtGui import QAction
 from PyQt4.QtGui import QMessageBox
 from PyQt4.QtGui import QWidget
 from qgis.core import QgsMapLayerRegistry
+from qgis.gui import QgsMessageBar
 
 import resources_rc
 import tools
@@ -211,6 +212,8 @@ class EditorRFUGeofoncier:
         self.conn = dlg_login.conn
         self.action_connector.setEnabled(True)
 
+        self.iface.messageBar().pushMessage(u"Géofoncier", u"Bonjour %s." % self.conn.user, level=QgsMessageBar.INFO, duration=6)
+
     def close_connection(self):
 
         msg = (u"Voulez-vous fermer votre session ?\n"
@@ -230,6 +233,8 @@ class EditorRFUGeofoncier:
             self.action_connector.setEnabled(False)
 
         self.conn = None
+
+        self.iface.messageBar().pushMessage(u"Géofoncier", u"À bientôt.", level=QgsMessageBar.INFO, duration=6)
 
     # On action signals
     # =================
@@ -253,7 +258,7 @@ class EditorRFUGeofoncier:
     def tool_rfu_on_triggered(self, checked):
 
         if checked and not self.rfu:
-            self.rfu = RFUDockWidget(self.canvas, self.map_layer_registry, conn=self.conn)
+            self.rfu = RFUDockWidget(self.iface, self.canvas, self.map_layer_registry, conn=self.conn)
             self.rfu.setObjectName(r"RFUDockWidget")
             self.iface.addDockWidget(Qt.TopDockWidgetArea, self.rfu)
             self.rfu.closed.connect(self.rfu_on_closed)

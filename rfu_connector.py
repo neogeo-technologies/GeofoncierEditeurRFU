@@ -19,6 +19,7 @@ from PyQt4.QtCore import QVariant
 from PyQt4.QtGui import QColor
 from PyQt4.QtGui import QDockWidget
 from PyQt4.QtGui import QMessageBox
+from PyQt4.QtGui import QProgressBar
 from qgis.core import QgsCoordinateReferenceSystem
 from qgis.core import QgsFillSymbolV2
 from qgis.core import QgsRectangle
@@ -39,6 +40,7 @@ from qgis.core import QgsPalLayerSettings
 from qgis.core import QgsSingleSymbolRendererV2
 from qgis.core import QgsInvertedPolygonRenderer
 from qgis.gui import QgsMapCanvasLayer
+from qgis.gui import QgsMessageBar
 
 import tools
 from login import GeoFoncierAPILogin
@@ -52,11 +54,12 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
     closed = pyqtSignal()
 
-    def __init__(self, canvas, map_layer_registry, conn=None, parent=None):
+    def __init__(self, iface, canvas, map_layer_registry, conn=None, parent=None):
 
         super(RFUDockWidget, self).__init__(parent)
         self.setupUi(self)
 
+        self.iface = iface
         self.canvas = canvas
         self.map_layer_registry = map_layer_registry
         self.conn = conn
@@ -120,8 +123,20 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
     def on_downloaded(self):
 
+        # Create message
+        widget = self.iface.messageBar().createMessage(u"Géofoncier", u"Téléchargement du RFU.")
+        progress_bar = QProgressBar()
+        progress_bar.setMinimum(0)
+        progress_bar.setMaximum(2)
+        widget.layout().addWidget(progress_bar)
+        self.iface.messageBar().pushWidget(widget, QgsMessageBar.WARNING)
+
+        progress_bar.setValue(1)
+
         # Download data
         self.download()
+
+        self.iface.messageBar().clearWidgets()
 
     def download(self, url=None):
 
@@ -382,6 +397,14 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
     def on_uploaded(self):
 
+        # Create message
+        widget = self.iface.messageBar().createMessage(u"Géofoncier", u"Envoi des modifications.")
+        progress_bar = QProgressBar()
+        progress_bar.setMinimum(0)
+        progress_bar.setMaximum(3)
+        widget.layout().addWidget(progress_bar)
+        self.iface.messageBar().pushWidget(widget, QgsMessageBar.WARNING)
+
         # Ensure that the action is intentional..
         msg = (u"Vous êtes sur le point de soumettre "
                u"les modifications au serveur GéoFoncier. "
@@ -390,8 +413,10 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         resp = QMessageBox.question(self, r"Question", msg,
                                     QMessageBox.Yes, QMessageBox.No)
         if resp != QMessageBox.Yes:
+            self.iface.messageBar().clearWidgets()
             return False
 
+        progress_bar.setValue(1)
         # Stop editing mode..
         for layer in self.layers:
             if layer.isEditable():
@@ -409,11 +434,14 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             pass
         else:
             # Nothing to do..
+            self.iface.messageBar().clearWidgets()
             msg = (u"Aucune modification des données n'est détecté.")
             return QMessageBox.warning(self, r"Warning", msg)
 
+        progress_bar.setValue(2)
         ul = self.upload()
         if ul != True:
+            self.iface.messageBar().clearWidgets()
             return None
 
         #for layer in self.layers:
@@ -426,10 +454,13 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         res = self.reset()
         if res != True:
+            self.iface.messageBar().clearWidgets()
             return None
 
         self.download(url=self.url)
         self.canvas.zoomToFullExtent()
+
+        self.iface.messageBar().clearWidgets()
 
         # self.permalinkLineEdit.setDisabled(True)
         # self.downloadPushButton.setDisabled(True)
