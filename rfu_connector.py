@@ -100,15 +100,13 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         epsg = 4326 # by default
         for i, e in enumerate(self.ellips_acronym):
             if i == j:
-                acronym = e[0]
+                self.selected_ellips_acronym = e[0]
                 epsg = int(e[1])
                 continue
 
         crs = QgsCoordinateReferenceSystem(epsg, QgsCoordinateReferenceSystem.EpsgCrsId)
         self.canvas.mapRenderer().setDestinationCrs(crs)
         self.canvas.zoomToFullExtent()
-
-        self.selected_ellips_acronym = acronym
 
     #def open_connection(self):
     #    """Call GeoFoncierAPILogin() ie. the `Sign In` DialogBox.
