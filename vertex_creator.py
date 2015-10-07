@@ -29,7 +29,7 @@ class VertexCreator(QDialog, gui_dlg_vertex_creator):
 
     def __init__(self, canvas, l_vertex, parent=None, user=None,
                  precision_class=[], ellips_acronym=[],
-                 dflt_ellips_acronym = None,
+                 selected_ellips_acronym = None,
                  nature=[], auth_creator=[]):
 
         super(VertexCreator, self).__init__(parent)
@@ -40,18 +40,20 @@ class VertexCreator(QDialog, gui_dlg_vertex_creator):
         self.user = user
         self.precision_class = precision_class
         self.ellips_acronym = ellips_acronym
-        self.dflt_ellips_acronym = dflt_ellips_acronym
+        self.selected_ellips_acronym = selected_ellips_acronym
         self.nature = nature
         self.auth_creator = auth_creator
 
         self.xLineEdit.clear()
         self.yLineEdit.clear()
 
+        print ellips_acronym
+
         for i, e in enumerate(self.ellips_acronym):
             self.ellipsComboBox.addItem(e[2])
-            if not dflt_ellips_acronym:
+            if not selected_ellips_acronym:
                 continue
-            if dflt_ellips_acronym == e[0]:
+            if selected_ellips_acronym == e[0]:
                 self.ellipsComboBox.setCurrentIndex(i)
 
         # Attribute: `som_precision_rattachement`

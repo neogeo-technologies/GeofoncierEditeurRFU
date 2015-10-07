@@ -164,7 +164,6 @@ class EditorRFUGeofoncier:
             old_layer.attributeValueChanged.disconnect(self.on_attribute_value_changed)
             old_layer.geometryChanged.disconnect(self.on_geometry_changed)
 
-        self.current_layer = layer
         layer.committedFeaturesAdded.connect(self.on_committed_features_added)
         #QObject.connect(layer, SIGNAL(r"committedFeaturesRemoved()"), self.on_committed_features_removed)
         layer.committedFeaturesRemoved.connect(self.on_committed_features_removed)
@@ -183,7 +182,8 @@ class EditorRFUGeofoncier:
         # self.rfu.add_feature(self.current_layer.id(), feature)
 
     def on_geometry_changed(self, fid, geom):
-        print "-> on_geometry_changed(self, %s, %s)" % (fid, geom)
+        # TODO: Undo
+        #QMessageBox.warning(self.iface.mainWindow(), r"Warning", u"Cette opération n\'est pas permise.")
         pass
 
     def on_attribute_value_changed(self, fid, field_idx, value):
@@ -275,13 +275,16 @@ class EditorRFUGeofoncier:
 
     def tool_vtx_creator_on_triggered(self):
 
+        if not self.rfu.dflt_ellips_acronym:
+            self.rfu.selected_ellips_acronym = self.rfu.dflt_ellips_acronym
+
         dlg_vtx_creator = VertexCreator(
                             self.canvas,
                             self.rfu.layers[0],
                             user=self.rfu.conn.user,
                             precision_class=self.rfu.precision_class,
                             ellips_acronym=self.rfu.ellips_acronym,
-                            dflt_ellips_acronym=self.rfu.dflt_ellips_acronym,
+                            selected_ellips_acronym=self.rfu.selected_ellips_acronym,
                             nature=self.rfu.nature,
                             auth_creator=self.rfu.auth_creator)
 
