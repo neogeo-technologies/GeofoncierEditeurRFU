@@ -5,6 +5,8 @@
 # Copyright (C) 2015 Géofoncier (R)
 
 
+import xml.etree.ElementTree as EltTree
+
 from urlparse import urljoin
 
 import tools
@@ -26,6 +28,23 @@ class APIClient(object):
         self.extract = False
         self.extract_lim = 0
         self.update = False
+
+        resp = self.referentielsoge_ge()
+        if resp.code != 200:
+            return
+
+        tree = EltTree.fromstring(resp.read())
+        self.nom = tree.find(r"./ge/nom").text
+        self.prenom = tree.find(r"./ge/prenom").text
+
+    def referentielsoge_ge(self):
+        """"See..
+        `https://api.geofoncier.fr/documentation/#!/referentielsoge/getInfoGE_get_2`
+
+        """
+        url = urljoin(self.base_url, r"referentielsoge/ge")
+        return tools.request(url, user_agent=self.user_agent, user=self.user,
+                             password=self.pw, params={r"numero": self.user})
 
     def get_my_capabilities(self):
         """See..

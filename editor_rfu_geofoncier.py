@@ -212,7 +212,9 @@ class EditorRFUGeofoncier:
         self.conn = dlg_login.conn
         self.action_connector.setEnabled(True)
 
-        self.iface.messageBar().pushMessage(u"Géofoncier", u"Bonjour %s." % self.conn.user, level=QgsMessageBar.INFO, duration=6)
+        self.iface.messageBar().pushMessage(
+                u"Géofoncier", u"Bonjour %s %s." % (self.conn.prenom, self.conn.nom),
+                level=QgsMessageBar.INFO, duration=6)
 
     def close_connection(self):
 
