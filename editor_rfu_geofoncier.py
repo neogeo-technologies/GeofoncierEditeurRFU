@@ -185,7 +185,8 @@ class EditorRFUGeofoncier:
     def on_geometry_changed(self, fid, geom):
         # TODO: Undo
         #QMessageBox.warning(self.iface.mainWindow(), r"Warning", u"Cette opération n\'est pas permise.")
-        pass
+        feature = tools.get_feature_by_id(self.current_layer, fid)
+        self.rfu.modify_feature(self.current_layer.id(), feature)
 
     def on_attribute_value_changed(self, fid, field_idx, value):
         feature = tools.get_feature_by_id(self.current_layer, fid)
