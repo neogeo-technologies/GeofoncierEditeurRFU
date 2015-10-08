@@ -27,7 +27,6 @@ from qgis.core import QgsRectangle
 # from qgis.core import QgsSnapper
 # from qgis.core import QgsTolerance
 from qgis.core import QgsVectorLayer
-from qgis.core import QgsMapRenderer
 from qgis.core import QgsMarkerSymbolV2
 from qgis.core import QgsLineSymbolV2
 from qgis.core import QgsRuleBasedRendererV2
@@ -105,7 +104,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                 continue
 
         crs = QgsCoordinateReferenceSystem(epsg, QgsCoordinateReferenceSystem.EpsgCrsId)
-        self.canvas.mapRenderer().setDestinationCrs(crs)
+        self.canvas.setDestinationCrs(crs)
         self.canvas.zoomToFullExtent()
 
     #def open_connection(self):
@@ -312,11 +311,12 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                 self.projComboBox.setCurrentIndex(i)
 
                 # Activate 'On The Fly'
-                self.canvas.mapRenderer().setProjectionsEnabled(True)
+                #self.canvas.mapRenderer().setProjectionsEnabled(True)
+                self.canvas.setCrsTransformEnabled(True)
 
-                # Then chane the CRS in canvas
+                # Then change the CRS in canvas
                 crs = QgsCoordinateReferenceSystem(int(e[1]), QgsCoordinateReferenceSystem.EpsgCrsId)
-                self.canvas.mapRenderer().setDestinationCrs(crs)
+                self.canvas.setDestinationCrs(crs)
 
         # Then, start editing mode..
         for layer in self.layers:
