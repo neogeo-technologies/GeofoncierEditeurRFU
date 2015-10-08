@@ -4,6 +4,7 @@
         <file alias="btn_add_edge">resources/btn_add_edge.png</file>
         <file alias="btn_add_vtx">resources/btn_add_vtx.png</file>
         <file alias="btn_conn_rfu">resources/btn_conn_rfu.png</file>
+        <file alias="btn_del_vtx">resources/btn_del_vtx.png</file>
         <file alias="dl">resources/dl.png</file>
         <file alias="reset">resources/reset.png</file>
         <file alias="select">resources/select.png</file>
