@@ -359,7 +359,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             self.map_layer_registry.removeMapLayers([
                             self.l_vertex.id(), self.l_edge.id(), self.l_bbox.id()])
         except:
-            pass
+            return
 
         # Reset variable..
         self.precision_class = []
@@ -436,6 +436,9 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         else:
             # Nothing to do..
             self.iface.messageBar().clearWidgets()
+            for layer in self.layers:
+                if not layer.isEditable():
+                    layer.startEditing()
             msg = (u"Aucune modification des données n'est détecté.")
             return QMessageBox.warning(self, r"Warning", msg)
 
