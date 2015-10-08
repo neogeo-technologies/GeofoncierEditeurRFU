@@ -164,6 +164,7 @@ class EditorRFUGeofoncier:
             old_layer.attributeValueChanged.disconnect(self.on_attribute_value_changed)
             old_layer.geometryChanged.disconnect(self.on_geometry_changed)
 
+        self.current_layer = layer
         layer.committedFeaturesAdded.connect(self.on_committed_features_added)
         #QObject.connect(layer, SIGNAL(r"committedFeaturesRemoved()"), self.on_committed_features_removed)
         layer.committedFeaturesRemoved.connect(self.on_committed_features_removed)
