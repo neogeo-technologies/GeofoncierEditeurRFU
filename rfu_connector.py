@@ -165,16 +165,21 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         # Extract params from url..
         params = parse_qs(urlparse(self.url).query)
 
-        # Extract zone (&context)..
-        self.zone = str(params[r"context"][0])
+        # Extract context (&context)..
+        context = str(params[r"context"][0])
 
         # TODO: Récupèrer cette liste depuis l'API..
-        auth_zone = [r"metropole", r"antilles",
-                     r"guyane", r"reunion", r"mayotte"]
+        auth_context = [r"metropole", r"guadeloupe",
+                        r"stmartin", r"stbarthelemy",
+                        r"guyane", r"reunion", r"mayotte"]
 
-        if self.zone not in auth_zone:
-            msg = u"Le territoire indiqué ‘%s’ est incorrect." % self.zone
+        if context not in auth_context:
+            msg = u"Le territoire indiqué ‘%s’ est incorrect." % context
             return QMessageBox.warning(self, r"Warning", msg)
+
+        self.zone = context
+        if self.zone in [r"guadeloupe", r"stmartin", r"stbarthelemy"]:
+            self.zone = r"antilles"
 
         # Check if XY are valid..
         center = params[r"centre"][0]
