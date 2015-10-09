@@ -7,9 +7,9 @@
 # This file should be included when you package your plugin.# Mandatory items:
 
 [general]
-name=Éditeur RFU Géofoncier
+name=Géofoncier Éditeur RFU
 qgisMinimumVersion=2.6
-description=Éditeur RFU Géofoncier
+description=Édition des sommets et des limites RFU.
 version=0.1
 author=Géofoncier
 email=contact@geofoncier.fr
@@ -22,7 +22,7 @@ email=contact@geofoncier.fr
 # changelog=
 
 # Tags are comma separated with spaces allowed
-tags=Géofoncier,RFU
+tags=Géofoncier,geofoncier,RFU,rfu
 
 homepage=https://github.com/neogeo-technologies/GeofoncierEditeurRFU
 tracker=https://github.com/neogeo-technologies/GeofoncierEditeurRFU/issues

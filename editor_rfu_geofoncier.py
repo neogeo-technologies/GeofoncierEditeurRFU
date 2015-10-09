@@ -44,17 +44,16 @@ class EditorRFUGeofoncier:
         self.plugin_dir = os.path.dirname(__file__)
 
         # Initialize locale
-        locale = QSettings().value(r"locale/userLocale")[0:2]
-        locale_path = os.path.join(
-                self.plugin_dir, r"i18n",
-                r"EditorRFUGeofoncier_{}.qm".format(locale))
+        #locale = QSettings().value(r"locale/userLocale")[0:2]
+        #locale_path = os.path.join(
+        #        self.plugin_dir, r"i18n", r"translate_{}.qm".format(locale))
 
-        if os.path.exists(locale_path):
-            self.translator = QTranslator()
-            self.translator.load(locale_path)
+        #if os.path.exists(locale_path):
+        #    self.translator = QTranslator()
+        #    self.translator.load(locale_path)
 
-            if qVersion() > r"4.3.3":
-                QCoreApplication.installTranslator(self.translator)
+        #    if qVersion() > r"4.3.3":
+        #        QCoreApplication.installTranslator(self.translator)
 
         self.conn = None
         self.rfu = None
@@ -71,8 +70,8 @@ class EditorRFUGeofoncier:
     def initGui(self):
 
         # Add tool bar..
-        self.toolbar = self.iface.addToolBar(u"Éditeur RFU Géofoncier")
-        self.toolbar.setObjectName(r"EditorRFUGeofoncierToolBar")
+        self.toolbar = self.iface.addToolBar(u"Géofoncier Éditeur RFU")
+        self.toolbar.setObjectName(r"GeofoncierRfuEditorToolBar")
 
         # Create action(s)..
 

@@ -1,12 +1,12 @@
 #/***************************************************************************
-# EditorRFUGeofoncier
+# GeofoncierEditeurRFU
 #
-# Editor RFU Geofoncier
+# Géofoncier Editeur RFU
 #							 -------------------
 #		begin				: 2015-02-26
 #		git sha				: $Format:%H$
 #		copyright			: (C) 2015 by Geofoncier
-#		email				: contact@geofoncier@fr
+#		email				: contact@geofoncier.fr
 # ***************************************************************************/
 #
 #/***************************************************************************
@@ -25,15 +25,12 @@
 
 #Add iso code for any locales you want to support here (space separated)
 # default is no locales
-# LOCALES = af
-LOCALES =
+# LOCALES =
 
 # If locales are enabled, set the name of the lrelease binary on your system. If
 # you have trouble compiling the translations, you may have to specify the full path to
 # lrelease
-#LRELEASE = lrelease
-#LRELEASE = lrelease-qt4
-
+# LRELEASE = lrelease
 
 # translation
 SOURCES = \
@@ -48,7 +45,7 @@ SOURCES = \
 	config.py \
 	tools.py
 
-PLUGINNAME = EditorRFUGeofoncier
+PLUGINNAME = GeofoncierEditeurRFU
 
 PY_FILES = \
 	editor_rfu_geofoncier.py \
@@ -70,17 +67,19 @@ UI_FILES = \
 	gui/dlg_vertex_creator.ui \
 
 EXTRAS = \
+	config.json \
 	icon.png \
-	resources/btn_log_in.png \
+	metadata.txt \
 	resources/btn_add_edge.png \
 	resources/btn_add_vtx.png \
 	resources/btn_conn_rfu.png \
+	resources/btn_del_vtx.png \
+	resources/btn_log_in.png \
 	resources/dl.png \
 	resources/reset.png \
 	resources/select.png \
 	resources/ul.png \
-	resources/underline.png \
-	metadata.txt
+	resources/underline.png
 
 COMPILED_RESOURCE_FILES = resources_rc.py
 
@@ -152,7 +151,6 @@ dclean:
 	@echo "-----------------------------------"
 	find $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME) -iname "*.pyc" -delete
 	find $(HOME)/$(QGISDIR)/python/plugins/$(PLUGINNAME) -iname ".git" -prune -exec rm -Rf {} \;
-
 
 derase:
 	@echo
