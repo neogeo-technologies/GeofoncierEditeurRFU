@@ -90,6 +90,10 @@ class APIClient(object):
         `https://api.geofoncier.fr/documentation/#!/rfuoge/closeChangeset_put_6`
 
         """
+
+        if zone == r"mayotte":
+            zone = "y"
+
         url = urljoin(self.base_url, r"rfuoge/changeset/%s%s" % (zone[0], id))
         return tools.request(
                     url, user_agent=self.user_agent, user=self.user,
