@@ -52,6 +52,8 @@ gui_dckwdgt_rfu_connector, _ = uic.loadUiType(
 class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
     closed = pyqtSignal()
+    downloaded = pyqtSignal()
+    #uploaded = pyqtSignal()
 
     def __init__(self, iface, canvas, map_layer_registry, conn=None, parent=None):
 
@@ -340,6 +342,8 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.resetPushButton.clicked.connect(self.on_reset)
         self.uploadPushButton.clicked.connect(self.on_uploaded)
 
+        self.downloaded.emit()
+
     def on_reset(self):
 
         # Ensure that the action is intentional..
@@ -577,6 +581,8 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.vertices_removed = {}
         self.edges_modified = {}
         self.vertices_modified = {}
+
+        #self.uploaded.emit()
 
         return True
 

@@ -255,6 +255,7 @@ class EditorRFUGeofoncier:
             self.rfu.setObjectName(r"RFUDockWidget")
             self.iface.addDockWidget(Qt.TopDockWidgetArea, self.rfu)
             self.rfu.closed.connect(self.rfu_on_closed)
+            self.rfu.downloaded.connect(self.on_toggled)
 
         if checked and self.rfu:
             self.rfu.show()
