@@ -4,9 +4,10 @@
 # Copyright (C) 2015 Géofoncier (R)
 
 
+import base64
+import unicodedata
 import urllib
 import urllib2
-import base64
 import xml.etree.ElementTree as ElementTree
 
 from PyQt4.QtCore import Qt
@@ -140,6 +141,9 @@ def xml_subelt_creator(root, tag, data, action=None):
     elt = ElementTree.SubElement(root, tag, attrib=attrib)
 
     for key in data:
+        val = data[key]
+        if type(val) is unicode:
+            val = unicodedata.normalize(r'NFKD', data[key]).encode(r'ascii', r'ignore')
         if not key.startswith(r"@"):
-            ElementTree.SubElement(elt, key).text = str(data[key])
+            ElementTree.SubElement(elt, key).text = str(val)
     return elt
