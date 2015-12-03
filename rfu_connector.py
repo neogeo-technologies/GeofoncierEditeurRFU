@@ -604,20 +604,20 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         vertex_root_rule = renderer_vertex.rootRule()
         vertex_rules = (
             (
-                 (u"Borne, Borne à puce, Pierre, Piquet, Clou, Broche"),
+                 (u"Borne, borne à puce, pierre, piquet, clou ou broche"),
                  (u"$id >= 0 AND \"som_nature\" IN ('Borne',"
-                  u"'Borne à puce', 'Pierre', 'Piquet', 'Clou', 'Broche')"),
+                  u"'Borne à puce', 'Pierre', 'Piquet', 'Clou ou broche')"),
                  r"#EC0000", 2.2
             ), (
-                 (u"Axe cours d'eau, Axe fossé, Haut de talus, Pied de talus"),
+                 (u"Axe cours d'eau, axe fossé, haut de talus, pied de talus"),
                  (u"$id >= 0 AND \"som_nature\" IN ('Axe cours d\'\'eau',"
                   u"'Axe fossé', 'Haut de talus', 'Pied de talus')"),
                  r"#EE8012", 2.2
             ), (
-                 (u"Angle de bâtiment, Axe de mur, Angle de mur, "
-                  u"Angle de clôture, Pylône et toute autre valeur"),
+                 (u"Angle de bâtiment, axe de mur, angle de mur, "
+                  u"angle de clôture, pylône et toute autre valeur"),
                  (u"$id >= 0 AND \"som_nature\" NOT IN ('Borne',"
-                  u"'Borne à puce', 'Pierre', 'Piquet', 'Clou', 'Broche',"
+                  u"'Borne à puce', 'Pierre', 'Piquet', 'Clou ou broche',"
                   u"'Axe cours d\'\'eau', 'Axe fossé', 'Haut de talus',"
                   u"'Pied de talus')"),
                  r"#9784EC", 2.2
