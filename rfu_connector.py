@@ -158,8 +158,8 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         #if not self.conn:
         #    return None
 
-        # Test if permalink is valid (&centre and &context are mandatory)..
-        pattern = r"^(https?:\/\/(\w+[\w\-\.\:\/])+)\?((\&+)?(context|centre|\w+)\=?([\w\-\.\:\,]+?)?)+(\&+)?$"
+        # Test if permalink is valid..
+        pattern = r"^(https?:\/\/(\w+[\w\-\.\:\/])+)\?((\&+)?(\w+)\=?([\w\-\.\:\,]+?)?)+(\&+)?$"
         if not re.match(pattern, self.url):
             msg = u"Le permalien n'est pas valide."
             return QMessageBox.warning(self, r"Warning", msg)
@@ -167,15 +167,17 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         # Extract params from url..
         params = parse_qs(urlparse(self.url).query)
 
-        # Extract context (&context)..
-        context = str(params[r"context"][0])
+        # Check mandatory parameters..
+        try:
+            context = str(params[r"context"][0])
+            center = params[r"centre"][0]
+        except:
+            msg = u"Les paramètres ‘CONTEXT’ et ‘CENTRE’ sont obligatoires."
+            return QMessageBox.warning(self, r"Warning", msg)
 
-        # TODO: Récupèrer cette liste depuis l'API..
-        auth_context = [r"metropole", r"guadeloupe",
-                        r"stmartin", r"stbarthelemy",
-                        r"guyane", r"reunion", r"mayotte"]
-
-        if context not in auth_context:
+        # Check if context is valid..
+        if context not in [r"metropole", r"guadeloupe", r"stmartin",
+                           r"stbarthelemy", r"guyane", r"reunion", r"mayotte"]:
             msg = u"Le territoire indiqué ‘%s’ est incorrect." % context
             return QMessageBox.warning(self, r"Warning", msg)
 
@@ -184,7 +186,6 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             self.zone = r"antilles"
 
         # Check if XY are valid..
-        center = params[r"centre"][0]
         if not re.match(r"^\-?\d+,\-?\d+$", center):
             msg = u"Les coordonnées XY du centre sont incorrectes."
             return QMessageBox.warning(self, r"Warning", msg)
