@@ -20,6 +20,10 @@ from PyQt4.QtGui import QColor
 from PyQt4.QtGui import QDockWidget
 from PyQt4.QtGui import QMessageBox
 from PyQt4.QtGui import QProgressBar
+
+from PyQt4.QtGui import QInputDialog
+from PyQt4.QtGui import QLineEdit
+
 from qgis.core import QgsCoordinateReferenceSystem
 from qgis.core import QgsFillSymbolV2
 from qgis.core import QgsRectangle
@@ -417,15 +421,16 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.iface.messageBar().pushWidget(widget, QgsMessageBar.WARNING)
 
         # Ensure that the action is intentional..
-        msg = (u"Vous êtes sur le point de soumettre "
-               u"les modifications au serveur GéoFoncier. "
-               u"Souhaitez-vous poursuivre cette action ?")
+        #msg = (u"Vous êtes sur le point de soumettre "
+        #       u"les modifications au serveur GéoFoncier. "
+        #       u"Souhaitez-vous poursuivre cette action ?")
 
-        resp = QMessageBox.question(self, r"Question", msg,
-                                    QMessageBox.Yes, QMessageBox.No)
-        if resp != QMessageBox.Yes:
-            self.iface.messageBar().clearWidgets()
-            return False
+        #resp = QMessageBox.question(self, r"Question", msg,
+        #                            QMessageBox.Yes, QMessageBox.No)
+
+        #if resp != QMessageBox.Yes:
+        #    self.iface.messageBar().clearWidgets()
+        #    return False
 
         progress_bar.setValue(1)
         # Stop editing mode..
@@ -452,8 +457,45 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             msg = (u"Aucune modification des données n'est détecté.")
             return QMessageBox.warning(self, r"Warning", msg)
 
+        msg = (u"Vous êtes sur le point de soumettre\n"
+               u"les modifications au serveur GéoFoncier.\n"
+               u"Veuillez renseigner la référence du dossier.")
+
+        enr_ref_dossier, ok = QInputDialog.getText(self, u"Dossier", msg)
+
+        if not ok:
+            self.iface.messageBar().clearWidgets()
+            return False
+
+        # Set enr_api_dossier as empty string
+        enr_api_dossier = u""
+        if enr_ref_dossier != u"":
+
+            dossiers = self.conn.dossiersoge_dossiers(self.zone, enr_ref_dossier)
+            if dossiers.code != 200:
+                return QMessageBox.warning(self, r"Warning", dossiers.read())
+
+            tree = EltTree.fromstring(dossiers.read())
+
+            # Check if exception
+            err = tree.find(r"./erreur")
+            if err:
+                return QMessageBox.warning(self, r"Warning", err.text)
+
+            nb_dossiers = int(tree.find(r"./dossiers").attrib[r"total"])
+            if nb_dossiers == 0:
+                msg = u"Le dossier %s n'existe pas." % enr_ref_dossier
+                self.iface.messageBar().clearWidgets()
+                return QMessageBox.warning(self, r"Warning", msg)
+            if nb_dossiers == 1:
+                enr_api_dossier = tree.getiterator(tag=r"dossier")[0].find(r"{http://www.w3.org/2005/Atom}link").attrib[r"href"].split(r"/")[-1][1:]
+            if nb_dossiers > 1:
+                msg = u"Trop de dossiers: %s" % nb_dossiers
+                self.iface.messageBar().clearWidgets()
+                return QMessageBox.warning(self, r"Warning", msg)
+
         progress_bar.setValue(2)
-        ul = self.upload()
+        ul = self.upload(enr_api_dossier)
         if ul != True:
             self.iface.messageBar().clearWidgets()
             return None
@@ -486,7 +528,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         # self.resetPushButton.clicked.connect(self.on_reset)
         # self.uploadPushButton.clicked.connect(self.on_uploaded)
 
-    def upload(self):
+    def upload(self, enr_api_dossier=r""):
         """Upload data to Géofoncier REST API."""
 
         root = EltTree.Element(r"rfu")
@@ -528,7 +570,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                                          action=r"update")
 
         # Open a new Changeset..
-        opencs = self.conn.open_changeset(self.zone)
+        opencs = self.conn.open_changeset(self.zone, enr_api_dossier)
 
         if opencs.code != 200:
             return QMessageBox.warning(self, r"Warning", opencs.read())

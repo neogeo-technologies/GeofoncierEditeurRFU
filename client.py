@@ -46,6 +46,17 @@ class APIClient(object):
         return tools.request(url, user_agent=self.user_agent, user=self.user,
                              password=self.pw, params={r"numero": self.user})
 
+    def dossiersoge_dossiers(self, zone, enr_ref_dossier):
+        """"See..
+        `https://api.geofoncier.fr/documentation/#!/dossiersoge/getDossiers_get_5`
+
+        """
+        url = urljoin(self.base_url, r"dossiersoge/dossiers")
+        return tools.request(
+                    url, user_agent=self.user_agent,
+                    user=self.user, password=self.pw,
+                    params={r"zone": zone, r"enr_ref_dossier": enr_ref_dossier})
+
     def get_my_capabilities(self):
         """See..
         `https://api.geofoncier.fr/documentation/#!/rfuoge/getCapaKey_get_1`
@@ -75,15 +86,15 @@ class APIClient(object):
                     user=self.user, password=self.pw,
                     params={r"bbox": r"%s,%s,%s,%s" % (xmin, ymin, xmax, ymax)})
 
-    def open_changeset(self, zone, data={}):
+    def open_changeset(self, zone, enr_api_dossier=r"" , data={}):
         """"See..
         `https://api.geofoncier.fr/documentation/#!/rfuoge/createChangeset_post_5`
 
         """
         url = urljoin(self.base_url, r"rfuoge/changeset")
         return tools.request(
-                    url, user_agent=self.user_agent, user=self.user,
-                    password=self.pw, params={r"zone": zone}, data=data)
+                url, user_agent=self.user_agent, user=self.user,
+                password=self.pw, params={r"zone": zone, r"enr_api_dossier": enr_api_dossier}, data=data)
 
     def close_changeset(self, zone, id):
         """"See..
