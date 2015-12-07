@@ -7,15 +7,12 @@
 import os
 import re
 import xml.etree.ElementTree as EltTree
-# from datetime import datetime
 from urlparse import urlparse
 from urlparse import parse_qs
 
 from PyQt4 import uic
 from PyQt4.QtCore import pyqtSignal
 from PyQt4.QtCore import QVariant
-# from PyQt4.QtCore import QDateTime
-# from PyQt4.QtCore import QDate
 from PyQt4.QtGui import QColor
 from PyQt4.QtGui import QDockWidget
 from PyQt4.QtGui import QMessageBox
@@ -27,9 +24,6 @@ from PyQt4.QtGui import QLineEdit
 from qgis.core import QgsCoordinateReferenceSystem
 from qgis.core import QgsFillSymbolV2
 from qgis.core import QgsRectangle
-# from qgis.core import QgsProject
-# from qgis.core import QgsSnapper
-# from qgis.core import QgsTolerance
 from qgis.core import QgsVectorLayer
 from qgis.core import QgsMarkerSymbolV2
 from qgis.core import QgsLineSymbolV2
@@ -57,7 +51,6 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
     closed = pyqtSignal()
     downloaded = pyqtSignal()
-    #uploaded = pyqtSignal()
 
     def __init__(self, iface, canvas, map_layer_registry, conn=None, parent=None):
 
@@ -82,9 +75,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.l_edge = None
         self.layers = [self.l_vertex, self.l_edge]
 
-        # Initialize dicts which contains data RFU modif..
-        # self.edges_added_temp = {}
-        # self.vertices_added_temp = {}
+        # Initialize dicts which contains changed datasets
         self.edges_added = {}
         self.vertices_added = {}
         self.edges_removed = {}
@@ -100,135 +91,193 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         self.closed.emit()
 
-    def set_destination_crs(self, j):
-
-        epsg = 4326 # by default
-        for i, e in enumerate(self.ellips_acronym):
-            if i == j:
-                self.selected_ellips_acronym = e[0]
-                epsg = int(e[1])
-                continue
-
-        crs = QgsCoordinateReferenceSystem(epsg, QgsCoordinateReferenceSystem.EpsgCrsId)
-        self.canvas.setDestinationCrs(crs)
-        self.canvas.zoomToFullExtent()
-
-    #def open_connection(self):
-    #    """Call GeoFoncierAPILogin() ie. the `Sign In` DialogBox.
-    #    If accepted -> return a new APIClient() obj.
-    #
-    #    """
-    #    dlg_login = GeoFoncierAPILogin()
-    #    dlg_login.show()
-    #
-    #    # Test if failed..
-    #    if not dlg_login.exec_():
-    #        return None
-    #
-    #    # Then..
-    #    return dlg_login.conn
-
     def on_downloaded(self):
 
-        # Create message
         widget = self.iface.messageBar().createMessage(u"Géofoncier", u"Téléchargement du RFU.")
+
         progress_bar = QProgressBar()
         progress_bar.setMinimum(0)
         progress_bar.setMaximum(2)
         widget.layout().addWidget(progress_bar)
-        self.iface.messageBar().pushWidget(widget, QgsMessageBar.WARNING)
 
+        self.iface.messageBar().pushWidget(widget, QgsMessageBar.WARNING)
         progress_bar.setValue(1)
 
-        # Download data
-        self.download()
-
-        self.iface.messageBar().clearWidgets()
-
-    def download(self, url=None):
-
+        # https://pro.geofoncier.fr/index.php?&centre=-196406,5983255&context=metropole
+        url = self.permalinkLineEdit.text()
         if not url:
-            #url = u"https://pro.geofoncier.fr/index.php?&centre=-196406,5983255&context=metropole"
-            url = self.permalinkLineEdit.text()
-        if not url:
-            msg = u"Veuillez renseigner le permalien."
-            return QMessageBox.warning(self, r"Warning", msg)
-
+            return self.abort_action(msg=u"Veuillez renseigner le permalien.")
         self.url = url
 
-        # Connect to API if none..
-        #if not self.conn:
-        #    self.conn = self.open_connection()
-        #if not self.conn:
-        #    return None
+        try:
+            self.download(self.url)
+        except Exception as e:
+            return self.abort_action(msg=e.message)
 
-        # Test if permalink is valid..
+        progress_bar.setValue(2)
+        self.iface.messageBar().clearWidgets()
+
+        return
+
+    def on_reset(self):
+
+        # Ensure that the action is intentional
+        msg = (u"Cette action est irreversible. "
+               u"Toute modification sera perdue. "
+               u"Êtes-vous sûr de vouloir réinitialiser l'outil ?")
+        resp = QMessageBox.question(self, r"Question", msg,
+                                    QMessageBox.Yes, QMessageBox.No)
+        if resp == QMessageBox.Yes:
+            self.reset()
+
+        return
+
+    def on_uploaded(self):
+
+        # Create message
+        widget = self.iface.messageBar().createMessage(u"Géofoncier", u"Envoi des modifications.")
+        progress_bar = QProgressBar()
+        progress_bar.setMinimum(0)
+        progress_bar.setMaximum(3)
+        widget.layout().addWidget(progress_bar)
+        self.iface.messageBar().pushWidget(widget, QgsMessageBar.WARNING)
+        progress_bar.setValue(1)
+
+        # Stop editing mode
+        for layer in self.layers:
+            if layer.isEditable():
+                layer.commitChanges()
+
+        # Check if dataset changes
+        if (self.edges_added
+                or self.vertices_added
+                or self.edges_removed
+                or self.vertices_removed
+                or self.edges_modified
+                or self.vertices_modified):
+            pass
+        else:
+            return self.abort_action(msg=u"Aucune modification des données n'est détecté.")
+
+        enr_ref_dossier, ok = QInputDialog.getText(
+                                self, u"Référence de dossier",
+                                u"Vous êtes sur le point de soumettre\n"
+                                u"les modifications au serveur GéoFoncier.\n"
+                                u"Veuillez renseigner la référence du dossier.")
+        if not ok:
+            return self.abort_action()
+
+        if enr_ref_dossier:
+
+            dossiers = self.conn.dossiersoge_dossiers(self.zone, enr_ref_dossier)
+            if dossiers.code != 200:
+                return self.abort_action(msg=dossiers.read())
+
+            tree = EltTree.fromstring(dossiers.read())
+
+            # Check if exception
+            err = tree.find(r"./erreur")
+            if err:
+                return self.abort_action(msg=err.text)
+
+            nb_dossiers = int(tree.find(r"./dossiers").attrib[r"total"])
+
+            if nb_dossiers == 0:
+                return self.abort_action(msg=u"Le dossier \'%s\' n'existe pas." % enr_ref_dossier)
+
+            if nb_dossiers > 1:
+                return self.abort_action(msg=u"Le nombre de dossiers est incohérent.\n"
+                                    u"Merci de contacter l'administrateur Géofoncier.")
+
+            if nb_dossiers == 1:
+                # This is the normal case
+                dossier_uri = tree.getiterator(tag=r"dossier")[0].find(
+                                        r"{http://www.w3.org/2005/Atom}link")
+                enr_api_dossier = dossier_uri.attrib[r"href"].split(r"/")[-1][1:]
+
+        else:
+            enr_api_dossier = None
+
+        progress_bar.setValue(2)
+
+        # Upload, reset and re-download datasets
+        try:
+            log = self.upload(enr_api_dossier=enr_api_dossier)
+            self.reset()
+            self.download(self.url)
+        except Exception as e:
+            return self.abort_action(msg=e.message)
+
+        self.canvas.zoomToFullExtent()
+        self.iface.messageBar().clearWidgets()
+
+        return QMessageBox.information(self, r"Information", u"\r".join(log))
+
+    def download(self, url):
+
+        # Test if permalink is valid
         pattern = r"^(https?:\/\/(\w+[\w\-\.\:\/])+)\?((\&+)?(\w+)\=?([\w\-\.\:\,]+?)?)+(\&+)?$"
         if not re.match(pattern, self.url):
-            msg = u"Le permalien n'est pas valide."
-            return QMessageBox.warning(self, r"Warning", msg)
+            raise Exception(u"Le permalien n'est pas valide.")
 
-        # Extract params from url..
+        # Extract params from url
         params = parse_qs(urlparse(self.url).query)
 
-        # Check mandatory parameters..
+        # Check mandatory parameters
         try:
             context = str(params[r"context"][0])
             center = params[r"centre"][0]
         except:
-            msg = u"Les paramètres ‘CONTEXT’ et ‘CENTRE’ sont obligatoires."
-            return QMessageBox.warning(self, r"Warning", msg)
+            raise Exception(u"Les paramètres \'Context\' et \'Centre\' sont obligatoires.")
 
-        # Check if context is valid..
-        if context not in [r"metropole", r"guadeloupe", r"stmartin",
-                           r"stbarthelemy", r"guyane", r"reunion", r"mayotte"]:
-            msg = u"Le territoire indiqué ‘%s’ est incorrect." % context
-            return QMessageBox.warning(self, r"Warning", msg)
+        auth_contexts = [r"metropole", r"guadeloupe", r"stmartin",
+                               r"stbarthelemy", r"guyane", r"reunion", r"mayotte"]
+
+        # Check if context is valid
+        if context not in auth_contexts:
+            raise Exception(u"La valeur \'%s\' est incorrecte.\n\n"
+                            u"\'Context\' doit prentre une des %s valeurs suivantes: "
+                            u"%s" % (context, len(auth_contexts), ", ".join(auth_contexts)))
 
         self.zone = context
         if self.zone in [r"guadeloupe", r"stmartin", r"stbarthelemy"]:
             self.zone = r"antilles"
 
-        # Check if XY are valid..
+        # Check if XY are valid
         if not re.match(r"^\-?\d+,\-?\d+$", center):
-            msg = u"Les coordonnées XY du centre sont incorrectes."
-            return QMessageBox.warning(self, r"Warning", msg)
+            raise Exception(u"Les coordonnées XY du centre sont incorrectes.")
 
-        # Extract XY (&centre)..
+        # Extract XY (&centre)
         xcenter = int(center.split(r",")[0])
         ycenter = int(center.split(r",")[1])
 
-        # Compute the bbox..
+        # Compute the bbox
         xmin = xcenter - self.conn.extract_lim / 2
         xmax = xcenter + self.conn.extract_lim / 2
         ymin = ycenter - self.conn.extract_lim / 2
         ymax = ycenter + self.conn.extract_lim / 2
 
-        # Transform coordinates in WGS84..
+        # Transform coordinates in WGS84
         bbox = tools.reproj(QgsRectangle(xmin, ymin, xmax, ymax), 3857, 4326)
 
-        # Extract RFU (Send the request)..
+        # Extract RFU (Send the request)
         resp = self.conn.extraction(bbox.xMinimum(), bbox.yMinimum(),
                                     bbox.xMaximum(), bbox.yMaximum())
 
         if resp.code != 200:
-            return QMessageBox.warning(self, r"Warning", resp.read())
+            raise Exception(resp.read())
 
         tree = EltTree.fromstring(resp.read())
 
         # Check if error
         err = tree.find(r"./erreur")
         if err:
-            return QMessageBox.warning(self, r"Warning", err.text)
+            raise Exception(err.text)
 
-        # isvalid = self.extraction_isvalid(xml)
-        # if isvalid is False:
-        #     msg = u"L'extraction RFU n'est pas valide."
-        #     return QMessageBox.warning(self, r"Warning", msg)
-
-        # Create layers "Masque d'extraction"
+        # Create the layer: "Masque d'extraction"
         self.l_bbox = QgsVectorLayer(r"Polygon?crs=epsg:4326&index=yes",
                                      u"Zone de travail", r"memory")
+
         p_bbox = self.l_bbox.dataProvider()
 
         simple_symbol = QgsFillSymbolV2.createSimple({
@@ -265,28 +314,22 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.canvas.setExtent(QgsRectangle(bbox.xMinimum(), bbox.yMinimum(),
                                            bbox.xMaximum(), bbox.yMaximum()))
 
-        # Activate snapping..
-        # for layer in self.layers:
-        #    QgsProject.instance().setSnapSettingsForLayer(
-        #         layer.id(), True, QgsSnapper.SnapToVertexAndSegment,
-        #         QgsTolerance.Pixels, 8, True)
-
         self.features_vertex_backed_up = \
-            dict((ft[r"fid"], ft) for ft in self.get_features(self.layers[0]))
+            dict((ft[r"fid"], ft) for ft in self.get_features(self.l_vertex))
         self.features_edge_backed_up = \
-            dict((ft[r"fid"], ft) for ft in self.get_features(self.layers[1]))
+            dict((ft[r"fid"], ft) for ft in self.get_features(self.l_edge))
 
         # Get Capabitilies
         resp = self.conn.get_capabilities(self.zone)
 
         if resp.code != 200:
-            return QMessageBox.warning(self, r"Warning", resp.read())
+            raise Exception(resp.read())
 
         tree = EltTree.fromstring(resp.read())
 
         err = tree.find(r"./erreur")
         if err:
-            return QMessageBox.warning(self, r"Warning", err.text)
+            raise Exception(err.text)
 
         for entry in tree.findall(r"./classe_rattachement/classe"):
             t = (entry.attrib[r"som_precision_rattachement"], entry.text)
@@ -304,7 +347,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             self.auth_creator.append(t)
 
         try:
-            ft = next(ft for ft in self.layers[0].getFeatures())
+            ft = next(ft for ft in self.l_vertex.getFeatures())
             ft_attrib = tools.attrib_as_kv(ft.fields(), ft.attributes())
             self.dflt_ellips_acronym = ft_attrib[r"som_representation_plane"]
         except:
@@ -323,7 +366,6 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                 self.projComboBox.setCurrentIndex(i)
 
                 # Activate 'On The Fly'
-                #self.canvas.mapRenderer().setProjectionsEnabled(True)
                 self.canvas.setCrsTransformEnabled(True)
 
                 # Then change the CRS in canvas
@@ -349,33 +391,19 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         self.downloaded.emit()
 
-    def on_reset(self):
-
-        # Ensure that the action is intentional..
-        msg = (u"Cette action est irreversible. "
-               u"Toute modification sera perdue. "
-               u"Êtes-vous sûr de vouloir réinitialiser l'outil ?")
-        resp = QMessageBox.question(self, r"Question", msg,
-                                    QMessageBox.Yes, QMessageBox.No)
-        if resp != QMessageBox.Yes:
-            return False
-
-        res = self.reset()
-        if res != True:
-            return None
+        return True
 
     def reset(self):
         """Remove RFU layers."""
 
-        # Remove RFU layers..
+        # Remove RFU layers
         try:
-            #self.map_layer_registry.removeMapLayers([l.id() for l in self.layers])
             self.map_layer_registry.removeMapLayers([
-                            self.l_vertex.id(), self.l_edge.id(), self.l_bbox.id()])
+                    self.l_vertex.id(), self.l_edge.id(), self.l_bbox.id()])
         except:
             return
 
-        # Reset variable..
+        # Reset variable
         self.precision_class = []
         self.ellips_acronym = []
         self.dflt_ellips_acronym = None
@@ -391,7 +419,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.edges_modified = {}
         self.vertices_modified = {}
 
-        # Reset ComboBox which contains projections authorized..
+        # Reset ComboBox which contains projections authorized
         self.projComboBox.clear()
         self.projComboBox.setDisabled(True)
 
@@ -410,129 +438,16 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         return True
 
-    def on_uploaded(self):
+    def upload(self, enr_api_dossier=None):
+        """Upload data to Géofoncier REST API.
+        On success returns the log messages (Array).
 
-        # Create message
-        widget = self.iface.messageBar().createMessage(u"Géofoncier", u"Envoi des modifications.")
-        progress_bar = QProgressBar()
-        progress_bar.setMinimum(0)
-        progress_bar.setMaximum(3)
-        widget.layout().addWidget(progress_bar)
-        self.iface.messageBar().pushWidget(widget, QgsMessageBar.WARNING)
+        """
 
-        # Ensure that the action is intentional..
-        #msg = (u"Vous êtes sur le point de soumettre "
-        #       u"les modifications au serveur GéoFoncier. "
-        #       u"Souhaitez-vous poursuivre cette action ?")
-
-        #resp = QMessageBox.question(self, r"Question", msg,
-        #                            QMessageBox.Yes, QMessageBox.No)
-
-        #if resp != QMessageBox.Yes:
-        #    self.iface.messageBar().clearWidgets()
-        #    return False
-
-        progress_bar.setValue(1)
-        # Stop editing mode..
-        for layer in self.layers:
-            if layer.isEditable():
-                #msg = (u"Veuillez fermer le mode d'édition et valider "
-                #       u"vos modification avant de poursuivre.")
-                #return QMessageBox.warning(self, r"Warning", msg)
-                layer.commitChanges()
-
-        if (self.edges_added
-                or self.vertices_added
-                or self.edges_removed
-                or self.vertices_removed
-                or self.edges_modified
-                or self.vertices_modified):
-            pass
-        else:
-            # Nothing to do..
-            self.iface.messageBar().clearWidgets()
-            for layer in self.layers:
-                if not layer.isEditable():
-                    layer.startEditing()
-            msg = (u"Aucune modification des données n'est détecté.")
-            return QMessageBox.warning(self, r"Warning", msg)
-
-        msg = (u"Vous êtes sur le point de soumettre\n"
-               u"les modifications au serveur GéoFoncier.\n"
-               u"Veuillez renseigner la référence du dossier.")
-
-        enr_ref_dossier, ok = QInputDialog.getText(self, u"Dossier", msg)
-
-        if not ok:
-            self.iface.messageBar().clearWidgets()
-            return False
-
-        # Set enr_api_dossier as empty string
-        enr_api_dossier = u""
-        if enr_ref_dossier != u"":
-
-            dossiers = self.conn.dossiersoge_dossiers(self.zone, enr_ref_dossier)
-            if dossiers.code != 200:
-                return QMessageBox.warning(self, r"Warning", dossiers.read())
-
-            tree = EltTree.fromstring(dossiers.read())
-
-            # Check if exception
-            err = tree.find(r"./erreur")
-            if err:
-                return QMessageBox.warning(self, r"Warning", err.text)
-
-            nb_dossiers = int(tree.find(r"./dossiers").attrib[r"total"])
-            if nb_dossiers == 0:
-                msg = u"Le dossier %s n'existe pas." % enr_ref_dossier
-                self.iface.messageBar().clearWidgets()
-                return QMessageBox.warning(self, r"Warning", msg)
-            if nb_dossiers == 1:
-                enr_api_dossier = tree.getiterator(tag=r"dossier")[0].find(r"{http://www.w3.org/2005/Atom}link").attrib[r"href"].split(r"/")[-1][1:]
-            if nb_dossiers > 1:
-                msg = u"Trop de dossiers: %s" % nb_dossiers
-                self.iface.messageBar().clearWidgets()
-                return QMessageBox.warning(self, r"Warning", msg)
-
-        progress_bar.setValue(2)
-        ul = self.upload(enr_api_dossier)
-        if ul != True:
-            self.iface.messageBar().clearWidgets()
-            return None
-
-        #for layer in self.layers:
-        #    if not layer.isEditable():
-        #        layer.startEditing()
-
-        #QMessageBox.information(
-        #            self, u"Information",
-        #            u"Les modifications du RFU sont enregistrées.")
-
-        res = self.reset()
-        if res != True:
-            self.iface.messageBar().clearWidgets()
-            return None
-
-        self.download(url=self.url)
-        self.canvas.zoomToFullExtent()
-
-        self.iface.messageBar().clearWidgets()
-
-        # self.permalinkLineEdit.setDisabled(True)
-        # self.downloadPushButton.setDisabled(True)
-        # self.resetPushButton.setDisabled(False)
-        # self.uploadPushButton.setDisabled(False)
-
-        # self.downloadPushButton.clicked.disconnect(self.on_downloaded)
-        # self.permalinkLineEdit.returnPressed.disconnect(self.on_downloaded)
-        # self.resetPushButton.clicked.connect(self.on_reset)
-        # self.uploadPushButton.clicked.connect(self.on_uploaded)
-
-    def upload(self, enr_api_dossier=r""):
-        """Upload data to Géofoncier REST API."""
-
+        # Set XML document
         root = EltTree.Element(r"rfu")
 
+        # Add to our XML document datasets which have been changed
         if self.vertices_added:
             for fid in self.vertices_added:
                 tools.xml_subelt_creator(root, u"sommet",
@@ -569,55 +484,32 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                                          data=self.edges_modified[fid],
                                          action=r"update")
 
-        # Open a new Changeset..
-        opencs = self.conn.open_changeset(self.zone, enr_api_dossier)
+        # Create a new changeset Id
+        changeset_id = self.create_changeset(enr_api_dossier=enr_api_dossier)
 
-        if opencs.code != 200:
-            return QMessageBox.warning(self, r"Warning", opencs.read())
-
-        tree = EltTree.fromstring(opencs.read())
-
-        err = tree.find(r"./erreur")
-        if err:
-            return QMessageBox.warning(self, r"Warning", err.text)
-
-        treeterator = tree.getiterator(tag=r"changeset")
-        if len(treeterator) != 1:
-            # TODO
-            return QMessageBox.warning(self, r"Warning", u"Une erreur est survenue.")
-
-        changeset_id = treeterator[0].attrib[r"id"]
+        # Add changeset value in our XML document
         root.attrib[r"changeset"] = changeset_id
 
-        # Send data..
+        # Send data
         edit = self.conn.edit(self.zone, EltTree.tostring(root))
         if edit.code != 200:
-            return QMessageBox.warning(self, r"Warning", edit.read())
+            raise Exception(edit.read())
 
         tree = EltTree.fromstring(edit.read())
+
         err = tree.find(r"./erreur")
         if err:
-            # Then display the error in a message box..
-            return QMessageBox.warning(self, r"Warning", err.text)
+            raise Exception(err.text)
 
-        # Returns log info..
+        # Returns log info
         msgs_log = []
         for log in tree.iter(r"log"):
             msgs_log.append(u"%s: %s" % (log.attrib[u"type"], log.text))
-        QMessageBox.information(self, r"Information", u"\r".join(msgs_log))
 
-        # Close the changeset..
-        close_changeset = self.conn.close_changeset(self.zone, changeset_id)
-        if close_changeset.code != 200:
-            return QMessageBox.warning(self, r"Warning", close_changeset.read())
+        # Close the changeset
+        self.destroy_changeset(changeset_id)
 
-        tree = EltTree.fromstring(close_changeset.read())
-        err = tree.find(r"./erreur")
-        if err:
-            # Then display the error in a message box..
-            return QMessageBox.warning(self, r"Warning", err.text)
-
-        # Reset all..
+        # Reset all
         self.edges_added = {}
         self.vertices_added = {}
         self.edges_removed = {}
@@ -625,9 +517,62 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.edges_modified = {}
         self.vertices_modified = {}
 
-        #self.uploaded.emit()
+        return msgs_log
+
+    def create_changeset(self, enr_api_dossier=None):
+        """Open a new changeset from Géofoncier API.
+        On success, returns the new changeset id.
+
+        """
+
+        opencs = self.conn.open_changeset(self.zone, enr_api_dossier)
+        if opencs.code != 200:
+            raise Exception(opencs.read())
+
+        tree = EltTree.fromstring(opencs.read())
+
+        err = tree.find(r"./erreur")
+        if err:
+            raise Exception(err.text)
+
+        treeterator = tree.getiterator(tag=r"changeset")
+
+        # We should get only one changeset
+        if len(treeterator) != 1:
+            raise Exception(u"Le nombre de \'changeset\' est incohérent.\n"
+                            u"Merci de contacter l'administrateur Géofoncier.")
+
+        return treeterator[0].attrib[r"id"]
+
+    def destroy_changeset(self, id):
+        """Close a changeset."""
+
+        closecs = self.conn.close_changeset(self.zone, id)
+
+        if closecs.code != 200:
+            raise Exception(closecs.read())
+
+        tree = EltTree.fromstring(closecs.read())
+
+        err = tree.find(r"./erreur")
+        if err:
+            raise Exception(err.text)
 
         return True
+
+    def abort_action(self, msg=None):
+
+        for layer in self.layers:
+            if layer and not layer.isEditable():
+                layer.startEditing()
+
+        # Clear message bar
+        self.iface.messageBar().clearWidgets()
+
+        if msg:
+            return QMessageBox.warning(self, r"Warning", msg)
+
+        return
 
     def extract_layers(self, tree):
         """Return a list of RFU layers."""
@@ -804,8 +749,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         # Check if valid..
         if not l_vertex.isValid() or not l_edge.isValid():
-            msg = u"Une erreur est survenue lors du chargement de la couche."
-            return QMessageBox.warning(self, r"Warning", msg)
+            raise Exception(u"Une erreur est survenue lors du chargement de la couche.")
 
         # Set labelling...
         palyr = QgsPalLayerSettings()
@@ -872,3 +816,16 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             if feature.id() not in self.features_vertex_backed_up:
                 return
             self.vertices_modified[feature.id()] = f
+
+    def set_destination_crs(self, j):
+
+        epsg = 4326 # by default
+        for i, e in enumerate(self.ellips_acronym):
+            if i == j:
+                self.selected_ellips_acronym = e[0]
+                epsg = int(e[1])
+                continue
+
+        crs = QgsCoordinateReferenceSystem(epsg, QgsCoordinateReferenceSystem.EpsgCrsId)
+        self.canvas.setDestinationCrs(crs)
+        self.canvas.zoomToFullExtent()

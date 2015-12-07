@@ -86,15 +86,19 @@ class APIClient(object):
                     user=self.user, password=self.pw,
                     params={r"bbox": r"%s,%s,%s,%s" % (xmin, ymin, xmax, ymax)})
 
-    def open_changeset(self, zone, enr_api_dossier=r"" , data={}):
+    def open_changeset(self, zone, enr_api_dossier=None, data={}):
         """"See..
         `https://api.geofoncier.fr/documentation/#!/rfuoge/createChangeset_post_5`
 
         """
+        params={r"zone": zone}
+        if enr_api_dossier:
+            params[r"enr_api_dossier"] = enr_api_dossier
+
         url = urljoin(self.base_url, r"rfuoge/changeset")
         return tools.request(
                 url, user_agent=self.user_agent, user=self.user,
-                password=self.pw, params={r"zone": zone, r"enr_api_dossier": enr_api_dossier}, data=data)
+                password=self.pw, params=params, data=data)
 
     def close_changeset(self, zone, id):
         """"See..
