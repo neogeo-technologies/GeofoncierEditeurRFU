@@ -51,9 +51,11 @@ class EdgeCreator(QDockWidget, gui_dckwdgt_edge_creator):
 
             self.startVertexComboBox.insertItem(i, str(vertex.id()))
             self.startVertexComboBox.setItemData(i, vertex, 32)
+            self.startVertexComboBox.setCurrentIndex(-1)
 
             self.endVertexComboBox.insertItem(i, str(vertex.id()))
             self.endVertexComboBox.setItemData(i, vertex, 32)
+            self.endVertexComboBox.setCurrentIndex(-1)
 
         # Attribute: `som_createur`
         for i, e in enumerate(self.auth_creator):

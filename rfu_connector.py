@@ -162,7 +162,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         enr_ref_dossier, ok = QInputDialog.getText(
                                 self, u"Référence de dossier",
                                 u"Vous êtes sur le point de soumettre\n"
-                                u"les modifications au serveur GéoFoncier.\n"
+                                u"les modifications au serveur Géofoncier.\n"
                                 u"Veuillez renseigner la référence du dossier.")
         if not ok:
             return self.abort_action()
@@ -187,7 +187,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
             if nb_dossiers > 1:
                 return self.abort_action(msg=u"Le nombre de dossiers est incohérent.\n"
-                                    u"Merci de contacter l'administrateur Géofoncier.")
+                                         u"Merci de contacter l'administrateur Géofoncier.")
 
             if nb_dossiers == 1:
                 # This is the normal case
@@ -231,7 +231,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             raise Exception(u"Les paramètres \'Context\' et \'Centre\' sont obligatoires.")
 
         auth_contexts = [r"metropole", r"guadeloupe", r"stmartin",
-                               r"stbarthelemy", r"guyane", r"reunion", r"mayotte"]
+                         r"stbarthelemy", r"guyane", r"reunion", r"mayotte"]
 
         # Check if context is valid
         if context not in auth_contexts:
