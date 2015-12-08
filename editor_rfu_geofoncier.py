@@ -256,6 +256,7 @@ class EditorRFUGeofoncier:
             self.iface.addDockWidget(Qt.TopDockWidgetArea, self.rfu)
             self.rfu.closed.connect(self.rfu_on_closed)
             self.rfu.downloaded.connect(self.on_toggled)
+            self.rfu.uploaded.connect(self.rfu_on_uploaded)
 
         if checked and self.rfu:
             self.rfu.show()
@@ -266,6 +267,11 @@ class EditorRFUGeofoncier:
     def rfu_on_closed(self):
 
         self.action_connector.setChecked(False)
+
+    def rfu_on_uploaded(self):
+
+        if self.edge_creator:
+            self.on_edge_creator_destroyed()
 
     def tool_vtx_creator_on_triggered(self):
 

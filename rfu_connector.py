@@ -51,6 +51,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
     closed = pyqtSignal()
     downloaded = pyqtSignal()
+    uploaded = pyqtSignal()
 
     def __init__(self, iface, canvas, map_layer_registry, conn=None, parent=None):
 
@@ -133,6 +134,8 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         return
 
     def on_uploaded(self):
+
+        self.uploaded.emit()
 
         # Create message
         widget = self.iface.messageBar().createMessage(u"Géofoncier", u"Envoi des modifications.")
