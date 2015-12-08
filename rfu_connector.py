@@ -143,6 +143,43 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.iface.messageBar().pushWidget(widget, QgsMessageBar.WARNING)
         progress_bar.setValue(1)
 
+        enr_ref_dossier, ok = QInputDialog.getText(
+                                self, u"Référence de dossier",
+                                u"Vous êtes sur le point de soumettre\n"
+                                u"les modifications au serveur Géofoncier.\n"
+                                u"Veuillez renseigner la référence du dossier.")
+        if not ok:
+            return self.abort_action()
+
+        if not enr_ref_dossier:
+            return self.abort_action(msg=u"Merci de renseigner une référence de dossier.")
+
+        commentaire = u"Dossier %s" % enr_ref_dossier
+
+        dossiers = self.conn.dossiersoge_dossiers(self.zone, enr_ref_dossier)
+        if dossiers.code != 200:
+            return self.abort_action(msg=dossiers.read())
+
+        tree = EltTree.fromstring(dossiers.read())
+
+        # Check if exception
+        err = tree.find(r"./erreur")
+        if err:
+            return self.abort_action(msg=err.text)
+
+        nb_dossiers = int(tree.find(r"./dossiers").attrib[r"total"])
+
+        if nb_dossiers == 0:
+            return self.abort_action(msg=u"Le dossier \'%s\' n'existe pas." % enr_ref_dossier)
+
+        if nb_dossiers >= 1:
+            # Prendre par défaut le dernier dossier dans la liste
+            dossier_uri = tree.getiterator(tag=r"dossier")[nb_dossiers-1].find(
+                                    r"{http://www.w3.org/2005/Atom}link")
+            enr_api_dossier = dossier_uri.attrib[r"href"].split(r"/")[-1][1:]
+
+        progress_bar.setValue(2)
+
         # Stop editing mode
         for layer in self.layers:
             if layer.isEditable():
@@ -159,50 +196,9 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         else:
             return self.abort_action(msg=u"Aucune modification des données n'est détecté.")
 
-        enr_ref_dossier, ok = QInputDialog.getText(
-                                self, u"Référence de dossier",
-                                u"Vous êtes sur le point de soumettre\n"
-                                u"les modifications au serveur Géofoncier.\n"
-                                u"Veuillez renseigner la référence du dossier.")
-        if not ok:
-            return self.abort_action()
-
-        if enr_ref_dossier:
-
-            dossiers = self.conn.dossiersoge_dossiers(self.zone, enr_ref_dossier)
-            if dossiers.code != 200:
-                return self.abort_action(msg=dossiers.read())
-
-            tree = EltTree.fromstring(dossiers.read())
-
-            # Check if exception
-            err = tree.find(r"./erreur")
-            if err:
-                return self.abort_action(msg=err.text)
-
-            nb_dossiers = int(tree.find(r"./dossiers").attrib[r"total"])
-
-            if nb_dossiers == 0:
-                return self.abort_action(msg=u"Le dossier \'%s\' n'existe pas." % enr_ref_dossier)
-
-            if nb_dossiers > 1:
-                return self.abort_action(msg=u"Le nombre de dossiers est incohérent.\n"
-                                         u"Merci de contacter l'administrateur Géofoncier.")
-
-            if nb_dossiers == 1:
-                # This is the normal case
-                dossier_uri = tree.getiterator(tag=r"dossier")[0].find(
-                                        r"{http://www.w3.org/2005/Atom}link")
-                enr_api_dossier = dossier_uri.attrib[r"href"].split(r"/")[-1][1:]
-
-        else:
-            enr_api_dossier = None
-
-        progress_bar.setValue(2)
-
         # Upload, reset and re-download datasets
         try:
-            log = self.upload(enr_api_dossier=enr_api_dossier)
+            log = self.upload(enr_api_dossier=enr_api_dossier, commentaire=commentaire)
             self.reset()
             self.download(self.url)
         except Exception as e:
@@ -438,7 +434,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         return True
 
-    def upload(self, enr_api_dossier=None):
+    def upload(self, enr_api_dossier=None, commentaire=None):
         """Upload data to Géofoncier REST API.
         On success returns the log messages (Array).
 
@@ -485,7 +481,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                                          action=r"update")
 
         # Create a new changeset Id
-        changeset_id = self.create_changeset(enr_api_dossier=enr_api_dossier)
+        changeset_id = self.create_changeset(enr_api_dossier=enr_api_dossier, commentaire=commentaire)
 
         # Add changeset value in our XML document
         root.attrib[r"changeset"] = changeset_id
@@ -519,13 +515,13 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         return msgs_log
 
-    def create_changeset(self, enr_api_dossier=None):
+    def create_changeset(self, enr_api_dossier=None, commentaire=None):
         """Open a new changeset from Géofoncier API.
         On success, returns the new changeset id.
 
         """
 
-        opencs = self.conn.open_changeset(self.zone, enr_api_dossier)
+        opencs = self.conn.open_changeset(self.zone, enr_api_dossier=enr_api_dossier, commentaire=commentaire)
         if opencs.code != 200:
             raise Exception(opencs.read())
 
