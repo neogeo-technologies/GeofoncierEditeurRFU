@@ -10,7 +10,8 @@
 name=Géofoncier Éditeur RFU
 qgisMinimumVersion=2.6
 description=Édition des sommets et des limites RFU.
-version=0.1
+about=Édition des sommets et des limites RFU.
+version=0.2
 author=Géofoncier
 email=contact@geofoncier.fr
 
