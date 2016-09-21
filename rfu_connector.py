@@ -186,6 +186,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         # Stop editing mode
         for layer in self.layers:
             if layer.isEditable():
+                self.iface.setActiveLayer(layer)
                 layer.commitChanges()
 
         # Check if dataset changes
