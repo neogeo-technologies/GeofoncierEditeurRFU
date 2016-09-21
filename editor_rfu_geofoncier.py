@@ -64,8 +64,8 @@ class EditorRFUGeofoncier:
         # Remove the plugin menu item and icon..
         self.iface.removePluginMenu(u"&Géofoncier", self.action_connector)
         self.iface.removeToolBarIcon(self.action_connector)
-        if self.iface:
-            self.iface.removeDockWidget(self.rfu)
+        self.iface.removeDockWidget(self.rfu)
+        self.iface.removeDockWidget(self.edge_creator)
 
     def initGui(self):
 
