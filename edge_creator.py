@@ -134,7 +134,11 @@ class EdgeCreator(QDockWidget, gui_dckwdgt_edge_creator):
             self.selected_vertices[i] = feature.id()
         else:
             self.selected_vertices[i] = None
-        self.l_vertex.setSelectedFeatures(self.selected_vertices)
+
+        if not None in self.selected_vertices:
+            self.l_vertex.setSelectedFeatures(self.selected_vertices)
+        elif feature:
+            self.l_vertex.setSelectedFeatures([feature.id()])
 
     def unselect_vertices(self):
         self.l_vertex.setSelectedFeatures([])
