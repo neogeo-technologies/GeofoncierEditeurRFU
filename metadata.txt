@@ -7,12 +7,12 @@
 # This file should be included when you package your plugin.# Mandatory items:
 
 [general]
-name=Géofoncier Éditeur RFU
+name=Geofoncier Editeur RFU
 qgisMinimumVersion=2.6
-description=Édition des sommets et des limites RFU.
-about=Édition des sommets et des limites RFU.
-version=0.2
-author=Géofoncier
+description=Edition des sommets et des limites RFU.
+about=Edition des sommets et des limites RFU.
+version=1.0
+author=Geofoncier
 email=contact@geofoncier.fr
 
 # End of mandatory metadata
@@ -23,7 +23,7 @@ email=contact@geofoncier.fr
 # changelog=
 
 # Tags are comma separated with spaces allowed
-tags=Géofoncier,geofoncier,RFU,rfu
+tags=Geofoncier,geofoncier,RFU,rfu
 
 homepage=https://github.com/neogeo-technologies/GeofoncierEditeurRFU
 tracker=https://github.com/neogeo-technologies/GeofoncierEditeurRFU/issues
@@ -31,8 +31,7 @@ repository=https://github.com/neogeo-technologies/GeofoncierEditeurRFU.git
 icon=icon.png
 
 # experimental flag
-experimental=True
+experimental=False
 
 # deprecated flag (applies to the whole plugin, not just a single version)
 deprecated=False
-
