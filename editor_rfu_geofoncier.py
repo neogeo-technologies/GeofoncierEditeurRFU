@@ -67,9 +67,10 @@ class EditorRFUGeofoncier:
         self.iface.removeToolBarIcon(self.action_connector)
         self.iface.removeToolBarIcon(self.action_vtx_creator)
         self.iface.removeToolBarIcon(self.action_edge_creator)
-        self.iface.removeToolBar(self.toolbar)
-        self.iface.removeDockWidget(self.rfu)
-        self.iface.removeDockWidget(self.edge_creator)
+        if self.rfu:
+            self.iface.removeDockWidget(self.rfu)
+        if self.edge_creator:
+            self.iface.removeDockWidget(self.edge_creator)
 
     def initGui(self):
 
