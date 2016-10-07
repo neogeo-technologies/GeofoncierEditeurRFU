@@ -219,6 +219,7 @@ class EditorRFUGeofoncier:
         resp = QMessageBox.question(self.iface.mainWindow(), r"Question", msg,
                                     QMessageBox.Yes, QMessageBox.No)
         if resp != QMessageBox.Yes:
+            self.dlg_login_on_closed();
             return False
 
         # Close connection
@@ -241,6 +242,8 @@ class EditorRFUGeofoncier:
 
         if self.conn == None:
             self.action_login.setChecked(False)
+        else:
+            self.action_login.setChecked(True)
 
     def dlg_login_on_opened(self):
 
