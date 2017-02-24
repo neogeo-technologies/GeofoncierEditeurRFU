@@ -86,7 +86,7 @@ class APIClient(object):
                     user=self.user, password=self.pw,
                     params={r"bbox": r"%s,%s,%s,%s" % (xmin, ymin, xmax, ymax)})
 
-    def open_changeset(self, zone, enr_api_dossier=None, commentaire=None, data={}):
+    def open_changeset(self, zone, enr_api_dossier=None, commentaire=None, data=r""):
         """"See..
         `https://api.geofoncier.fr/documentation/#!/rfuoge/createChangeset_post_5`
 
