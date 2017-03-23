@@ -15,12 +15,13 @@ from config import Configuration
 
 class APIClient(object):
 
-    def __init__(self, base_url=None, user_agent=None,
-                 user=None, pw=None):
+    def __init__(self, base_url=None, base_url_rfu=None,
+                 user_agent=None, user=None, pw=None):
 
         self.config = Configuration()
 
         self.base_url = base_url or self.config.base_url
+        self.base_url_rfu = base_url_rfu or self.config.base_url_rfu
         self.user_agent = user_agent or self.config.user_agent
         self.user = user # or self.config.user
         self.pw = pw # or self.config.pw
@@ -62,7 +63,7 @@ class APIClient(object):
         `https://api.geofoncier.fr/documentation/#!/rfuoge/getCapaKey_get_1`
 
         """
-        url = urljoin(self.base_url, r"rfuoge/getmycapabilities")
+        url = urljoin(self.base_url_rfu, r"rfuoge/getmycapabilities")
         return tools.request(url, user_agent=self.user_agent,
                              user=self.user, password=self.pw)
 
@@ -71,7 +72,7 @@ class APIClient(object):
         `https://api.geofoncier.fr/documentation/#!/rfuoge/getNomenclatureRFU_get_0`
 
         """
-        url = urljoin(self.base_url, r"rfuoge/getcapabilities")
+        url = urljoin(self.base_url_rfu, r"rfuoge/getcapabilities")
         return tools.request(url, user_agent=self.user_agent, user=self.user,
                              password=self.pw, params={r"zone": zone})
 
@@ -80,7 +81,7 @@ class APIClient(object):
         `https://api.geofoncier.fr/documentation/#!/rfuoge/extractRFU_get_2`
 
         """
-        url = urljoin(self.base_url, r"rfuoge/extraction")
+        url = urljoin(self.base_url_rfu, r"rfuoge/extraction")
         return tools.request(
                     url, user_agent=self.user_agent,
                     user=self.user, password=self.pw,
@@ -97,7 +98,7 @@ class APIClient(object):
         if commentaire:
             params[r"commentaire"] = commentaire
 
-        url = urljoin(self.base_url, r"rfuoge/changeset")
+        url = urljoin(self.base_url_rfu, r"rfuoge/changeset")
         return tools.request(
                 url, user_agent=self.user_agent, user=self.user,
                 password=self.pw, params=params, data=data)
@@ -111,7 +112,7 @@ class APIClient(object):
         if zone == r"mayotte":
             zone = "y"
 
-        url = urljoin(self.base_url, r"rfuoge/changeset/%s%s" % (zone[0], id))
+        url = urljoin(self.base_url_rfu, r"rfuoge/changeset/%s%s" % (zone[0], id))
         return tools.request(
                     url, user_agent=self.user_agent, user=self.user,
                     password=self.pw, method=r"PUT",
@@ -122,7 +123,7 @@ class APIClient(object):
         `https://api.geofoncier.fr/documentation/#!/rfuoge/editRFU_post_7`
 
         """
-        url = urljoin(self.base_url, r"rfuoge/edit")
+        url = urljoin(self.base_url_rfu, r"rfuoge/edit")
         return tools.request(
                     url, user_agent=self.user_agent, user=self.user,
                     password=self.pw, params={r"zone": zone}, data={r"xml": data})

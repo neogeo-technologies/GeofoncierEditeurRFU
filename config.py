@@ -25,6 +25,10 @@ class Configuration(object):
         if r"url" in self.config_api:
             self.base_url = str(self.config_api[r"url"])
 
+        self.base_url_rfu = None
+        if r"url_rfu" in self.config_api:
+            self.base_url_rfu = str(self.config_api[r"url_rfu"])
+
         self.user_agent = None
         if r"user_agent" in self.config_api:
             self.user_agent = str(self.config_api[r"user_agent"])

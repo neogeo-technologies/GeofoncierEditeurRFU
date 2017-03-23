@@ -1,6 +1,7 @@
 {
     "api": {
         "url": "https://api-geofoncier.brgm-rec.fr",
+        "url_rfu": "https://api-geofoncier.brgm-rec.fr",
         "user_agent": "3Jgsv0abrjifisx680AKGw257zSTG4"
     }
 }
