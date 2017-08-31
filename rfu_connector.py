@@ -642,7 +642,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         # Add fields..
         p_vertex.addAttributes([
-                    QgsField(r"@id_noeud", QVariant.Int),
+                    QgsField(r"@id_noeud", QVariant.LongLong),
                     # QgsField(r"@changeset", QVariant.Int),
                     # QgsField(r"@timestamp", QVariant.Date),
                     QgsField(r"@version", QVariant.Int),
@@ -656,7 +656,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                     ])
 
         p_edge.addAttributes([
-                    QgsField(r"@id_arc", QVariant.Int),
+                    QgsField(r"@id_arc", QVariant.LongLong),
                     # QgsField(r"@id_noeud_debut", QVariant.Int),
                     # QgsField(r"@id_noeud_fin", QVariant.Int),
                     # QgsField(r"@changeset", QVariant.Int),
