@@ -570,7 +570,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.iface.messageBar().clearWidgets()
 
         if msg:
-            return QMessageBox.warning(self, r"Warning", msg)
+            return QMessageBox.warning(self, r"Warning", str(msg))
 
         return
 
