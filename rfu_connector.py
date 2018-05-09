@@ -230,7 +230,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         except:
             raise Exception(u"Les paramètres \'Context\' et \'Centre\' sont obligatoires.")
 
-        auth_contexts = [r"metropole", r"guadeloupe", r"stmartin",
+        auth_contexts = [r"metropole", r"guadeloupe", r"stmartin", r"martinique",
                          r"stbarthelemy", r"guyane", r"reunion", r"mayotte"]
 
         # Check if context is valid
@@ -240,7 +240,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                             u"%s" % (context, len(auth_contexts), ", ".join(auth_contexts)))
 
         self.zone = context
-        if self.zone in [r"guadeloupe", r"stmartin", r"stbarthelemy"]:
+        if self.zone in [r"guadeloupe", r"stmartin", r"stbarthelemy", r"martinique"]:
             self.zone = r"antilles"
 
         # Check if XY are valid
