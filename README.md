@@ -1,6 +1,6 @@
-# Éditeur RFU Géofoncier pour QGIS 
+# Éditeur RFU Géofoncier pour QGIS 3
 
-> ## *Géofoncier RFU editor for QGIS*
+> ## *Géofoncier RFU editor for QGIS 3*
 
 Plugin QGIS pour l'édition des sommets et des limites RFU.
 
@@ -11,6 +11,8 @@ Ce plugin est destiné aux utilisateurs de l'API Géofoncier désirant soumettre
 ### Credits
 
 By [Neogeo Technologies](http://www.neogeo-online.net "Neogeo Technologies")
+
+Updated by [Sigmoé](https://sigmoe.fr/)
 
 Icons made by [Freepik](http://www.freepik.com "Freepik") from [www.flaticon.com](http://www.flaticon.com "Flaticon") is licensed under [CC BY 3.0](http://creativecommons.org/licenses/by/3.0/ "Creative Commons BY 3.0") except the Géofoncier icon.
 
