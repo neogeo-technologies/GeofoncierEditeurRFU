@@ -1,21 +1,11 @@
-# This file contains metadata for your plugin. Since
-# version 2.0 of QGIS this is the proper way to supply
-# information about a plugin. The old method of
-# embedding metadata in __init__.py will
-# is no longer supported since version 2.0.
-
-# This file should be included when you package your plugin.# Mandatory items:
-
 [general]
 name=Geofoncier Editeur RFU
-qgisMinimumVersion=2.6
+qgisMinimumVersion=3.4
 description=Edition des sommets et des limites RFU.
 about=Edition des sommets et des limites RFU.
-version=1.1
+version=2.02
 author=Geofoncier
 email=contact@geofoncier.fr
-
-# End of mandatory metadata
 
 # Optional items:
 
@@ -28,7 +18,7 @@ tags=Geofoncier,geofoncier,RFU,rfu
 homepage=https://github.com/neogeo-technologies/GeofoncierEditeurRFU
 tracker=https://github.com/neogeo-technologies/GeofoncierEditeurRFU/issues
 repository=https://github.com/neogeo-technologies/GeofoncierEditeurRFU.git
-icon=icon.png
+icon=iGeofoncierRfu.png
 
 # experimental flag
 experimental=False

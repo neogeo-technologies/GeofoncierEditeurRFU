@@ -1,19 +1,28 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 
-
-# Copyright (C) 2015 Géofoncier (R)
+"""
+    ***************************************************************************
+    * Plugin name:   GeofoncierEditeurRFU
+    * Plugin type:   QGIS 3 plugin
+    * Module:        Editor RFU Geofoncier
+    * Description:   Client
+    * First release: 2015
+    * Last release:  2019-08-19
+    * Copyright:     (C) 2015 Géofoncier(R), (C) 2019 SIGMOÉ(R),Géofoncier(R)
+    * Email:         em at sigmoe.fr
+    * License:       Proprietary license
+    ***************************************************************************
+"""
 
 
 import xml.etree.ElementTree as EltTree
+from urllib.parse import urljoin
 
-from urlparse import urljoin
-
-import tools
-from config import Configuration
+from . import tools
+from .config import Configuration
 
 
-class APIClient(object):
+class APIClient:
 
     def __init__(self, base_url=None, base_url_rfu=None,
                  user_agent=None, user=None, pw=None):
@@ -127,3 +136,31 @@ class APIClient(object):
         return tools.request(
                     url, user_agent=self.user_agent, user=self.user,
                     password=self.pw, params={r"zone": zone}, data={r"xml": data})
+
+    def get_ptplots(self, id_node, zone):
+        """See..
+        `https://api.geofoncier.fr/documentation/#!/rfuoge/getSommetDeterminations_get_15`
+
+        """
+        url = urljoin(self.base_url_rfu, r"rfuoge/sommet/%s" % id_node)
+        return tools.request(
+                    url, user_agent=self.user_agent, user=self.user,
+                    password=self.pw, 
+                    params={"id_sommet": id_node, 
+                            "r": 'determination',
+                            "zone": zone})
+                                     
+    def cancel_plot(self, id_som, id_det, zone):
+        """"See..
+        `https://api.geofoncier.fr/documentation/#!/rfuoge/cancelSommetDeterminations_put_16`
+
+        """
+
+        url = urljoin(self.base_url_rfu, r"rfuoge/sommet/%s" % (id_som))
+        return tools.request(
+                    url, user_agent=self.user_agent, user=self.user,
+                    password=self.pw, method=r"PUT",
+                    params={"r": 'determination',
+                            "id": id_det,
+                            "statut": 'cancel',
+                            "zone": zone})
