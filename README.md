@@ -1,6 +1,6 @@
-# Éditeur RFU Géofoncier pour QGIS 3
+# Éditeur RFU Géofoncier pour QGIS 3 - RFU v2
 
-> ## *Géofoncier RFU editor for QGIS 3*
+> ## *Géofoncier RFU editor for QGIS 3 - RFU v2*
 
 Plugin QGIS pour l'édition des sommets et des limites RFU.
 
