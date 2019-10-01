@@ -1,20 +1,32 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2015 Géofoncier (R)
+"""
+    ***************************************************************************
+    * Plugin name:   GeofoncierEditeurRFU
+    * Plugin type:   QGIS 3 plugin
+    * Module:        Edge creator
+    * Description:   Define a class that provides to the plugin
+    *                GeofoncierEditeurRFU the Edge Creator
+    * First release: 2015
+    * Last release:  2019-08-19
+    * Copyright:     (C) 2015 Géofoncier(R), (C) 2019 SIGMOÉ(R),Géofoncier(R)
+    * Email:         em at sigmoe.fr
+    * License:       Proprietary license
+    ***************************************************************************
+"""
 
+
+from qgis.PyQt import uic
+from qgis.PyQt.QtCore import Qt, QVariant
+from qgis.PyQt.QtWidgets import QDockWidget, QDialogButtonBox 
+from qgis.PyQt.QtGui import QCursor
+from qgis.core import QgsFeature, QgsGeometry, NULL
+from qgis.gui import QgsMapToolIdentifyFeature
 
 import os
 
-from PyQt4 import uic
-from PyQt4.QtCore import Qt
-from PyQt4.QtCore import QPyNullVariant
-from PyQt4.QtGui import QDockWidget
-from PyQt4.QtGui import QDialogButtonBox
-from PyQt4.QtGui import QCursor
-from qgis.core import QgsFeature
-from qgis.core import QgsGeometry
-from qgis.gui import QgsMapToolIdentifyFeature
+from .global_vars import *
+from .global_fnc import *
 
 
 gui_dckwdgt_edge_creator, _ = uic.loadUiType(
@@ -136,12 +148,12 @@ class EdgeCreator(QDockWidget, gui_dckwdgt_edge_creator):
             self.selected_vertices[i] = None
 
         if not None in self.selected_vertices:
-            self.l_vertex.setSelectedFeatures(self.selected_vertices)
+            self.l_vertex.selectByIds(self.selected_vertices)
         elif feature:
-            self.l_vertex.setSelectedFeatures([feature.id()])
+            self.l_vertex.selectByIds([feature.id()])
 
     def unselect_vertices(self):
-        self.l_vertex.setSelectedFeatures([])
+        self.l_vertex.selectByIds([])
 
     def create_edge(self):
 
@@ -156,20 +168,25 @@ class EdgeCreator(QDockWidget, gui_dckwdgt_edge_creator):
         # Two DIFFERENT vertices..
         if self.vtx_start == self.vtx_end:
             return self.canvas.refresh()
-
+        
         # Create line geometry..
-        line = QgsGeometry.fromPolyline([self.vtx_start.geometry().asPoint(),
+        line = QgsGeometry.fromPolylineXY([self.vtx_start.geometry().asPoint(),
                                          self.vtx_end.geometry().asPoint()])
-
-        # Create the feature..
-        self.edge = QgsFeature()
-        self.edge.setGeometry(line)
-        self.edge.setFields(self.l_edge.pendingFields())
-        self.edge.setAttributes(
-                [QPyNullVariant(int), QPyNullVariant(int), QPyNullVariant(int)])
-
-        # Add feature to layer..
-        self.l_edge.addFeature(self.edge)
+        self.original_l_edge = self.l_edge
+        # Check if the lines intersects
+        to_create = check_limit_cross(line, self.original_l_edge, self.canvas, False)
+        # Creation of the RFU objects in the layer
+        if to_create:
+            # Create the feature..
+            self.edge = QgsFeature()
+            self.edge.setGeometry(line)
+            self.edge.setFields(self.l_edge.fields())
+            self.edge.setAttributes(
+                    [NULL, NULL, NULL])
+            # Add feature to layer..
+            self.l_edge.addFeature(self.edge)
+        else:
+            self.on_reset()
         self.canvas.refresh()
 
     def on_accepted(self):
@@ -179,7 +196,7 @@ class EdgeCreator(QDockWidget, gui_dckwdgt_edge_creator):
 
         self.lim_ge_createur = self.auth_creator[self.creatorComboBox.currentIndex()][0]
         self.edge.setAttributes(
-                [QPyNullVariant(int), QPyNullVariant(int), self.lim_ge_createur])
+                [NULL, NULL, self.lim_ge_createur])
         self.l_edge.updateFeature(self.edge)
         self.canvas.refresh()
         self.save = True
@@ -197,11 +214,9 @@ class EdgeCreator(QDockWidget, gui_dckwdgt_edge_creator):
 
     def on_reset(self):
 
-        self.startVertexComboBox.setCurrentIndex(0)
-        # self.startVertexComboBox.setEnabled(True)
-        # self.startVertexLabel.setEnabled(True)
+        self.startVertexComboBox.setCurrentIndex(-1)
 
-        self.endVertexComboBox.setCurrentIndex(0)
+        self.endVertexComboBox.setCurrentIndex(-1)
         self.endVertexComboBox.setEnabled(False)
         self.endVertexLabel.setEnabled(False)
         self.endVertextoolButton.setEnabled(False)

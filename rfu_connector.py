@@ -1,46 +1,50 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2015 Géofoncier (R)
+"""
+    ***************************************************************************
+    * Plugin name:   GeofoncierEditeurRFU
+    * Plugin type:   QGIS 3 plugin
+    * Module:        RFU Connector
+    * Description:   Define a class that provides to the plugin
+    *                GeofoncierEditeurRFU the RFU connector
+    * First release: 2015
+    * Last release:  2019-09-24
+    * Copyright:     (C) 2015 Géofoncier(R), (C) 2019 SIGMOÉ(R),Géofoncier(R)
+    * Email:         em at sigmoe.fr
+    * License:       Proprietary license
+    ***************************************************************************
+"""
 
+
+from qgis.PyQt import uic
+from qgis.PyQt.QtCore import Qt, pyqtSignal, QVariant
+from qgis.PyQt.QtGui import QColor
+from qgis.PyQt.QtWidgets import (QAction, QDockWidget, QMessageBox, QProgressBar, 
+                                    QInputDialog, QLineEdit)
+from qgis.core import (QgsCoordinateReferenceSystem, QgsFillSymbol, QgsRectangle,
+                        QgsVectorLayer, QgsRasterLayer, QgsBrightnessContrastFilter,
+                        QgsMarkerSymbol, QgsLineSymbol, QgsRuleBasedRenderer, QgsField,
+                        QgsFeature, QgsGeometry, QgsExpression, QgsPalLayerSettings,
+                        QgsSingleSymbolRenderer, QgsInvertedPolygonRenderer, QgsMessageLog,
+                        QgsEditorWidgetSetup, QgsVectorLayerSimpleLabeling, QgsTextFormat,
+                        NULL)
+from qgis.gui import QgsMessageBar
 
 import os
 import re
+import json
+import codecs
 import xml.etree.ElementTree as EltTree
-from urlparse import urlparse
-from urlparse import parse_qs
+from urllib.parse import urlparse
+from urllib.parse import parse_qs
 
-from PyQt4 import uic
-from PyQt4.QtCore import pyqtSignal
-from PyQt4.QtCore import QVariant
-from PyQt4.QtGui import QColor
-from PyQt4.QtGui import QDockWidget
-from PyQt4.QtGui import QMessageBox
-from PyQt4.QtGui import QProgressBar
-
-from PyQt4.QtGui import QInputDialog
-from PyQt4.QtGui import QLineEdit
-
-from qgis.core import QgsCoordinateReferenceSystem
-from qgis.core import QgsFillSymbolV2
-from qgis.core import QgsRectangle
-from qgis.core import QgsVectorLayer
-from qgis.core import QgsMarkerSymbolV2
-from qgis.core import QgsLineSymbolV2
-from qgis.core import QgsRuleBasedRendererV2
-from qgis.core import QgsLabel
-from qgis.core import QgsField
-from qgis.core import QgsFeature
-from qgis.core import QgsGeometry
-from qgis.core import QgsExpression
-from qgis.core import QgsPalLayerSettings
-from qgis.core import QgsSingleSymbolRendererV2
-from qgis.core import QgsInvertedPolygonRenderer
-from qgis.gui import QgsMapCanvasLayer
-from qgis.gui import QgsMessageBar
-
-import tools
-from login import GeoFoncierAPILogin
+from . import tools
+from .login import GeoFoncierAPILogin
+from .config import Configuration
+from .global_fnc import *
+from .global_vars import *
+from .refdoss_cmt_entry import RefDossCmtEntry
+from .multidoss_choice import MultiDossChoice
 
 
 gui_dckwdgt_rfu_connector, _ = uic.loadUiType(
@@ -52,15 +56,16 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
     closed = pyqtSignal()
     downloaded = pyqtSignal()
     uploaded = pyqtSignal()
+    rfureset = pyqtSignal()
 
-    def __init__(self, iface, canvas, map_layer_registry, conn=None, parent=None):
+    def __init__(self, iface, canvas, project, conn=None, parent=None):
 
         super(RFUDockWidget, self).__init__(parent)
         self.setupUi(self)
 
         self.iface = iface
         self.canvas = canvas
-        self.map_layer_registry = map_layer_registry
+        self.project = project
         self.conn = conn
         self.zone = None
         self.precision_class = []
@@ -69,8 +74,11 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.selected_ellips_acronym = None
         self.nature = []
         self.auth_creator = []
-
+        self.tol_same_pt = 0.0
+        self.config = Configuration()
+        self.url_rfu = self.config.base_url_rfu
         self.url = None
+        self.refdoss_cmt = None
 
         self.l_vertex = None
         self.l_edge = None
@@ -78,15 +86,37 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         # Initialize dicts which contains changed datasets
         self.edges_added = {}
+        self.edges_added_ft = {}
         self.vertices_added = {}
+        self.vertices_added_ft = {}
         self.edges_removed = {}
         self.vertices_removed = {}
         self.edges_modified = {}
         self.vertices_modified = {}
 
         self.downloadPushButton.clicked.connect(self.on_downloaded)
-        self.permalinkLineEdit.returnPressed.connect(self.on_downloaded)
+        # self.permalinkLineEdit.returnPressed.connect(self.on_downloaded)
         self.projComboBox.currentIndexChanged.connect(self.set_destination_crs)
+        
+        # Loads permalinks into the permalink combox
+        self.load_permalinks()
+
+        # Create the WMS layer (from Geofoncier)
+        self.wms_urlwithparams = 'contextualWMSLegend=0&crs=EPSG:4326&dpiMode=1&featureCount=10&format=image/png&layers=RFU&styles=default&url=' 
+        self.wms_urlwithparams += self.url_rfu
+        self.wms_urlwithparams += '/referentielsoge/ogc/wxs/?'
+        self.l_wms = QgsRasterLayer(self.wms_urlwithparams, 'Fond de plan RFU WMS', 'wms')
+        # Define the contrast filter
+        contrast_filter = QgsBrightnessContrastFilter()
+        contrast_filter.setContrast(-100)
+        # Assign filter to raster pipe
+        self.l_wms.pipe().set(contrast_filter)
+        
+        # Add WMS layer to the registry
+        self.project.addMapLayer(self.l_wms, True)
+        
+        # Apply changes to the WMS layer
+        self.l_wms.triggerRepaint()
 
     def closeEvent(self, event):
 
@@ -94,26 +124,29 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
     def on_downloaded(self):
 
-        widget = self.iface.messageBar().createMessage(u"Géofoncier", u"Téléchargement du RFU.")
+        widget = self.iface.messageBar().createMessage("Géofoncier", "Téléchargement du RFU.")
 
         progress_bar = QProgressBar()
         progress_bar.setMinimum(0)
         progress_bar.setMaximum(2)
         widget.layout().addWidget(progress_bar)
 
-        self.iface.messageBar().pushWidget(widget, QgsMessageBar.WARNING)
+        self.iface.messageBar().pushWidget(widget)
         progress_bar.setValue(1)
 
         # https://pro.geofoncier.fr/index.php?&centre=-196406,5983255&context=metropole
-        url = self.permalinkLineEdit.text()
+        url = self.permalinkCmb.currentText()
+
         if not url:
-            return self.abort_action(msg=u"Veuillez renseigner le permalien.")
+            return self.abort_action(msg="Veuillez renseigner le permalien.")
         self.url = url
 
         try:
             self.download(self.url)
         except Exception as e:
-            return self.abort_action(msg=e.message)
+            return self.abort_action(msg=str(e))
+            
+        self.save_permalinks(self.url)
 
         progress_bar.setValue(2)
         self.iface.messageBar().clearWidgets()
@@ -123,13 +156,11 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
     def on_reset(self):
 
         # Ensure that the action is intentional
-        msg = (u"Cette action est irreversible. "
-               u"Toute modification sera perdue. "
-               u"Êtes-vous sûr de vouloir réinitialiser l'outil ?")
-        resp = QMessageBox.question(self, r"Question", msg,
+        resp = QMessageBox.question(self, reinit_msg[0], reinit_msg[1],
                                     QMessageBox.Yes, QMessageBox.No)
         if resp == QMessageBox.Yes:
             self.reset()
+            self.rfureset.emit()
 
         return
 
@@ -138,87 +169,131 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.uploaded.emit()
 
         # Create message
-        widget = self.iface.messageBar().createMessage(u"Géofoncier", u"Envoi des modifications.")
-        progress_bar = QProgressBar()
-        progress_bar.setMinimum(0)
-        progress_bar.setMaximum(3)
-        widget.layout().addWidget(progress_bar)
-        self.iface.messageBar().pushWidget(widget, QgsMessageBar.WARNING)
-        progress_bar.setValue(1)
+        self.widget = self.iface.messageBar().createMessage("Géofoncier", "Envoi des modifications.")
+        self.progress_bar = QProgressBar()
+        self.progress_bar.setMinimum(0)
+        self.progress_bar.setMaximum(3)
+        self.widget.layout().addWidget(self.progress_bar)
+        self.iface.messageBar().pushWidget(self.widget)
+        self.progress_bar.setValue(1)
+                                
+        # Specific dlg to manage the case of several doss with same ref
+        self.refdoss_cmt = RefDossCmtEntry()
+        self.refdoss_cmt.show()
+        # Continue the process after capturing the dic of values
+        self.refdoss_cmt.send_refdoss_cmt_vals.connect(self.on_uploaded_withref) 
+        
+    # Continue the process after dlg validation
+    def on_uploaded_withref(self, dic_vals):
+        if dic_vals["ok"]:
+            enr_ref_dossier = dic_vals["refdoss"]
+            self.enr_cmt = dic_vals["cmt"]
 
-        enr_ref_dossier, ok = QInputDialog.getText(
-                                self, u"Référence de dossier",
-                                u"Vous êtes sur le point de soumettre\n"
-                                u"les modifications au serveur Géofoncier.\n"
-                                u"Veuillez renseigner la référence du dossier.")
-        if not ok:
-            return self.abort_action()
+            if not enr_ref_dossier:
+                return self.abort_action(msg="Merci de renseigner une référence de dossier.")
 
-        if not enr_ref_dossier:
-            return self.abort_action(msg=u"Merci de renseigner une référence de dossier.")
+            # Create correct comment
+            if not self.enr_cmt:
+                self.enr_cmt = cmt_dft % enr_ref_dossier
+            else:
+                self.enr_cmt += " - " + cmt_dft % enr_ref_dossier
+            
+            debug_msg('DEBUG', "comment: %s" , (str(self.enr_cmt)))
+            
+            dossiers = self.conn.dossiersoge_dossiers(self.zone, enr_ref_dossier)
+            
+            dossiers_read = dossiers.read()
+            # DEBUG: Export response as a text file
+            # urlresp_to_file(dossiers_read)
+            if dossiers.code != 200:
+                return self.abort_action(msg=dossiers_read)
 
-        commentaire = u"Dossier %s" % enr_ref_dossier
+            tree = EltTree.fromstring(dossiers_read)
 
-        dossiers = self.conn.dossiersoge_dossiers(self.zone, enr_ref_dossier)
-        if dossiers.code != 200:
-            return self.abort_action(msg=dossiers.read())
+            # Check if exception
+            err = tree.find(r"./erreur")
+            if err:
+                return self.abort_action(msg=err.text)
 
-        tree = EltTree.fromstring(dossiers.read())
+            nb_dossiers = int(tree.find(r"./dossiers").attrib[r"total"])
 
-        # Check if exception
-        err = tree.find(r"./erreur")
-        if err:
-            return self.abort_action(msg=err.text)
+            if nb_dossiers == 0:
+                return self.abort_action(msg="Le dossier \'%s\' n'existe pas." % enr_ref_dossier)
 
-        nb_dossiers = int(tree.find(r"./dossiers").attrib[r"total"])
-
-        if nb_dossiers == 0:
-            return self.abort_action(msg=u"Le dossier \'%s\' n'existe pas." % enr_ref_dossier)
-
-        if nb_dossiers >= 1:
-            # Prendre par défaut le dernier dossier dans la liste
-            dossier_uri = tree.getiterator(tag=r"dossier")[nb_dossiers-1].find(
-                                    r"{http://www.w3.org/2005/Atom}link")
-            enr_api_dossier = dossier_uri.attrib[r"href"].split(r"/")[-1][1:]
-
-        progress_bar.setValue(2)
-
-        # Stop editing mode
-        for layer in self.layers:
-            if layer.isEditable():
-                self.iface.setActiveLayer(layer)
-                layer.commitChanges()
-
-        # Check if dataset changes
-        if (self.edges_added
-                or self.vertices_added
-                or self.edges_removed
-                or self.vertices_removed
-                or self.edges_modified
-                or self.vertices_modified):
-            pass
+            # Case of several same ref_dossier
+            # In the case, the difference is made by enr_cab_createur
+            if nb_dossiers >= 1:
+                doss_infos = []
+                for doss in tree.findall( r"./dossiers/dossier"):
+                    doss_info = []
+                    doss_info.append(doss.find("enr_cab_createur").text)
+                    doss_info.append(doss.find("enr_ref_dossier").text)
+                    doss_uri = doss.find(r"{http://www.w3.org/2005/Atom}link").attrib[r"href"].split(r"/")[-1][1:]
+                    doss_info.append(doss_uri)
+                    doss_infos.append(doss_info)
+                if len(doss_infos) > 1:
+                    self.doss_choice = MultiDossChoice(doss_infos)
+                    # Modal window
+                    self.doss_choice.setWindowModality(Qt.ApplicationModal)
+                    self.doss_choice.show()
+                    # Continue the process after capturing the dic of values
+                    self.doss_choice.send_refapidoss.connect(self.on_uploaded_proc) 
+                else:
+                    self.on_uploaded_proc(doss_uri)
         else:
-            return self.abort_action(msg=u"Aucune modification des données n'est détecté.")
+            self.iface.messageBar().clearWidgets()
+            
+    # Launch the uploading after receiving the ref_api_doss
+    def on_uploaded_proc(self, ref_api_doss): 
+        if ref_api_doss != "":
+            self.progress_bar.setValue(2)
+            # Stop editing mode
+            for layer in self.layers:
+                if layer.isEditable():
+                    self.iface.setActiveLayer(layer)
+                    layer.commitChanges()
 
-        # Upload, reset and re-download datasets
-        try:
-            log = self.upload(enr_api_dossier=enr_api_dossier, commentaire=commentaire)
-            self.reset()
-            self.download(self.url)
-        except Exception as e:
-            return self.abort_action(msg=e.message)
+            # Check if dataset changes
+            if (self.edges_added
+                    or self.vertices_added
+                    or self.edges_removed
+                    or self.vertices_removed
+                    or self.edges_modified
+                    or self.vertices_modified):
+                pass
+            else:
+                return self.abort_action(msg="Aucune modification des données n'est détectée.")
 
-        self.canvas.zoomToFullExtent()
-        self.iface.messageBar().clearWidgets()
+            # Upload, reset and re-download datasets
+            try:
+                log = self.upload(enr_api_dossier=ref_api_doss, commentaire=self.enr_cmt)
+                self.reset()
+                self.permalinkCmb.setCurrentText(self.url)
+                self.download(self.url)
+                self.zoom_bbox()
+                self.canvas.refresh()
+            except Exception as e:
+                self.reset()
+                self.permalinkCmb.setCurrentText(self.url)
+                self.download(self.url)
+                self.zoom_bbox()
+                self.canvas.refresh()
+                return self.abort_action(msg="\n".join(e.args[0]))
+            
+            self.iface.messageBar().clearWidgets()
 
-        return QMessageBox.information(self, r"Information", u"\r".join(log))
+            return QMessageBox.information(self, r"Information", "\n".join(log))
+        # Case of dlg mutidoss_choice cancelled
+        else:
+            QMessageBox.information(self, multi_doss_canceled_msg[0], multi_doss_canceled_msg[1])
+            self.iface.messageBar().clearWidgets()
 
     def download(self, url):
 
         # Test if permalink is valid
         pattern = r"^(https?:\/\/(\w+[\w\-\.\:\/])+)\?((\&+)?(\w+)\=?([\w\-\.\:\,]+?)?)+(\&+)?$"
         if not re.match(pattern, self.url):
-            raise Exception(u"Le permalien n'est pas valide.")
+            raise Exception("Le permalien n'est pas valide.")
 
         # Extract params from url
         params = parse_qs(urlparse(self.url).query)
@@ -228,16 +303,25 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             context = str(params[r"context"][0])
             center = params[r"centre"][0]
         except:
-            raise Exception(u"Les paramètres \'Context\' et \'Centre\' sont obligatoires.")
+            raise Exception("Les paramètres \'Context\' et \'Centre\' sont obligatoires.")
 
-        auth_contexts = [r"metropole", r"guadeloupe", r"stmartin", r"martinique",
-                         r"stbarthelemy", r"guyane", r"reunion", r"mayotte"]
+        auth_contexts = [r"metropole", r"guadeloupe", r"stmartin",
+                         r"stbarthelemy", r"guyane", r"reunion", r"mayotte", r"martinique"]
 
+        # Check scale parameter
+        try:
+            scale = int(params[r"echelle"][0])
+        except:
+            raise Exception("Le paramètre \'Echelle\' est obligatoire.")
+        else:
+            if scale > scale_limit:
+                raise Exception(wrong_scale_txt.format(str(scale_limit)))
+            
         # Check if context is valid
         if context not in auth_contexts:
-            raise Exception(u"La valeur \'%s\' est incorrecte.\n\n"
-                            u"\'Context\' doit prentre une des %s valeurs suivantes: "
-                            u"%s" % (context, len(auth_contexts), ", ".join(auth_contexts)))
+            raise Exception("La valeur \'%s\' est incorrecte.\n\n"
+                            "\'Context\' doit prentre une des %s valeurs suivantes: "
+                            "%s" % (context, len(auth_contexts), ", ".join(auth_contexts)))
 
         self.zone = context
         if self.zone in [r"guadeloupe", r"stmartin", r"stbarthelemy", r"martinique"]:
@@ -245,7 +329,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         # Check if XY are valid
         if not re.match(r"^\-?\d+,\-?\d+$", center):
-            raise Exception(u"Les coordonnées XY du centre sont incorrectes.")
+            raise Exception("Les coordonnées XY du centre sont incorrectes.")
 
         # Extract XY (&centre)
         xcenter = int(center.split(r",")[0])
@@ -256,19 +340,21 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         xmax = xcenter + self.conn.extract_lim / 2
         ymin = ycenter - self.conn.extract_lim / 2
         ymax = ycenter + self.conn.extract_lim / 2
-
+        
         # Transform coordinates in WGS84
-        bbox = tools.reproj(QgsRectangle(xmin, ymin, xmax, ymax), 3857, 4326)
+        bbox = tools.reproj(QgsRectangle(xmin, ymin, xmax, ymax), 3857, 4326, self.project)
 
         # Extract RFU (Send the request)
         resp = self.conn.extraction(bbox.xMinimum(), bbox.yMinimum(),
                                     bbox.xMaximum(), bbox.yMaximum())
 
+        resp_read = resp.read()
+        # DEBUG: Export response as a text file
+        # urlresp_to_file(resp_read)
+        
         if resp.code != 200:
-            raise Exception(resp.read())
-
-        tree = EltTree.fromstring(resp.read())
-
+            raise Exception(resp_read)
+        tree = EltTree.fromstring(resp_read)
         # Check if error
         err = tree.find(r"./erreur")
         if err:
@@ -276,44 +362,40 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         # Create the layer: "Masque d'extraction"
         self.l_bbox = QgsVectorLayer(r"Polygon?crs=epsg:4326&index=yes",
-                                     u"Zone de travail", r"memory")
+                                     "Zone de travail", r"memory")
 
         p_bbox = self.l_bbox.dataProvider()
 
-        simple_symbol = QgsFillSymbolV2.createSimple({
+        simple_symbol = QgsFillSymbol.createSimple({
                                 r"color": r"116,97,87,255",
                                 r"style": r"b_diagonal",
                                 r"outline_style": r"no"})
 
-        renderer_bbox = QgsInvertedPolygonRenderer(QgsSingleSymbolRendererV2(simple_symbol))
+        renderer_bbox = QgsInvertedPolygonRenderer(QgsSingleSymbolRenderer(simple_symbol))
 
-        self.l_bbox.setRendererV2(renderer_bbox)
+        self.l_bbox.setRenderer(renderer_bbox)
 
-        ft_bbox = QgsFeature()
-        ft_bbox.setGeometry(QgsGeometry.fromRect(QgsRectangle(bbox.xMinimum(), bbox.yMinimum(),
-                                                              bbox.xMaximum(), bbox.yMaximum())))
-        p_bbox.addFeatures([ft_bbox])
+        self.ft_bbox = QgsFeature()
+        self.limit_area = QgsRectangle(bbox.xMinimum(), bbox.yMinimum(),
+                                       bbox.xMaximum(), bbox.yMaximum())
+        self.ft_bbox.setGeometry(QgsGeometry.fromRect(self.limit_area))
+        p_bbox.addFeatures([self.ft_bbox])
 
         self.l_bbox.updateFields()
         self.l_bbox.updateExtents()
-
+        
         # Create layers..
         self.layers = self.extract_layers(tree)
         self.l_vertex = self.layers[0]
         self.l_edge = self.layers[1]
 
         # Add layer to the registry
-        self.map_layer_registry.addMapLayers([self.l_vertex, self.l_edge, self.l_bbox])
-
-        # Set the map canvas layer set
-        self.canvas.setLayerSet([QgsMapCanvasLayer(self.l_vertex),
-                                 QgsMapCanvasLayer(self.l_edge),
-                                 QgsMapCanvasLayer(self.l_bbox)])
+        self.project.addMapLayers([self.l_vertex, self.l_edge, self.l_bbox])
 
         # Set extent
-        self.canvas.setExtent(QgsRectangle(bbox.xMinimum(), bbox.yMinimum(),
-                                           bbox.xMaximum(), bbox.yMaximum()))
-
+        # self.canvas.setExtent(QgsRectangle(bbox.xMinimum(), bbox.yMinimum(),
+                                           # bbox.xMaximum(), bbox.yMaximum()))
+        
         self.features_vertex_backed_up = \
             dict((ft[r"fid"], ft) for ft in self.get_features(self.l_vertex))
         self.features_edge_backed_up = \
@@ -326,7 +408,11 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             raise Exception(resp.read())
 
         tree = EltTree.fromstring(resp.read())
-
+        
+        # Find tolerance to determine if 2 points are equals
+        for entry in tree.findall(r"./tolerance"):
+            self.tol_same_pt = float(entry.text)
+        
         err = tree.find(r"./erreur")
         if err:
             raise Exception(err.text)
@@ -345,7 +431,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         for entry in tree.findall(r"./som_ge_createur_autorise/som_ge_createur"):
             t = (entry.attrib[r"num_ge"], entry.text)
             self.auth_creator.append(t)
-
+            
         try:
             ft = next(ft for ft in self.l_vertex.getFeatures())
             ft_attrib = tools.attrib_as_kv(ft.fields(), ft.attributes())
@@ -356,38 +442,55 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         for i, e in enumerate(self.ellips_acronym):
 
             self.projComboBox.addItem(e[2])
-
-            if not self.dflt_ellips_acronym:
-                continue
+            
+            if not self.dflt_ellips_acronym and i==0:
+                self.project_crs = int(e[1])
 
             if self.dflt_ellips_acronym == e[0]:
 
                 # Check projection in combobox
                 self.projComboBox.setCurrentIndex(i)
 
-                # Activate 'On The Fly'
-                self.canvas.setCrsTransformEnabled(True)
-
                 # Then change the CRS in canvas
                 crs = QgsCoordinateReferenceSystem(int(e[1]), QgsCoordinateReferenceSystem.EpsgCrsId)
-                self.canvas.setDestinationCrs(crs)
-
+                self.project.setCrs(crs)
+                self.project_crs = int(e[1])
+        
+        # Calculate bbox in the project CRS (used for the scale limitation of the canvas)
+        self.bbox_crsproject = tools.reproj(QgsRectangle(xmin, ymin, xmax, ymax), 3857, self.project_crs, self.project)
+        
+        # Zoom to bbox extents
+        self.zoom_bbox()       
+        self.canvas.refresh()
+        
+        # Add the list of possible values to the field som_nature
+        map_predefined_vals_to_fld(self.l_vertex, "som_nature", self.nature) 
+        # Add the list of possible values to the field som_precision_rattachement
+        map_predefined_vals_to_fld(self.l_vertex, "som_precision_rattachement", self.precision_class, 0, 1)
+        # Add the list of possible values to the field som_precision_rattachement
+        map_predefined_vals_to_fld(self.l_vertex, "som_representation_plane", self.ellips_acronym, 0, 2)
+                
         # Then, start editing mode..
-        for layer in self.layers:
+        for idx, layer in enumerate(self.layers):
             if not layer.isEditable():
                 layer.startEditing()
+            if idx == 0:
+                self.iface.setActiveLayer(layer)
 
         self.projComboBox.setDisabled(False)
 
-        self.permalinkLineEdit.setDisabled(True)
+        self.permalinkCmb.setDisabled(True)
         self.downloadPushButton.setDisabled(True)
         self.resetPushButton.setDisabled(False)
         self.uploadPushButton.setDisabled(False)
 
         self.downloadPushButton.clicked.disconnect(self.on_downloaded)
-        self.permalinkLineEdit.returnPressed.disconnect(self.on_downloaded)
+        # self.permalinkLineEdit.returnPressed.disconnect(self.on_downloaded)
         self.resetPushButton.clicked.connect(self.on_reset)
         self.uploadPushButton.clicked.connect(self.on_uploaded)
+        
+        # Activate the scale limitation for the canvas
+        self.canvas.scaleChanged.connect(self.limit_cvs_scale)
 
         self.downloaded.emit()
 
@@ -395,14 +498,29 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
     def reset(self):
         """Remove RFU layers."""
-
+        
+        # Save (virtually) the changes in the layers
+        # (to avoid alert messages when removing the layers)
+        for layer in self.layers :
+            if isinstance(layer, QgsVectorLayer):
+                if layer.isEditable():
+                    self.iface.setActiveLayer(layer)
+                    layer.commitChanges()
+        
         # Remove RFU layers
         try:
-            self.map_layer_registry.removeMapLayers([
+            self.project.removeMapLayers([
                     self.l_vertex.id(), self.l_edge.id(), self.l_bbox.id()])
         except:
             return
-
+            
+        # Remove eliminated lines layer
+        if self.project.mapLayersByName(elimedge_lname):
+            el_lyr = self.project.mapLayersByName(elimedge_lname)[0]
+            self.iface.setActiveLayer(el_lyr)
+            el_lyr.commitChanges()
+            self.project.removeMapLayers([el_lyr.id()])
+        
         # Reset variable
         self.precision_class = []
         self.ellips_acronym = []
@@ -418,14 +536,16 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.vertices_removed = {}
         self.edges_modified = {}
         self.vertices_modified = {}
+        self.tol_same_pt = 0.0
 
         # Reset ComboBox which contains projections authorized
         self.projComboBox.clear()
         self.projComboBox.setDisabled(True)
 
-        self.permalinkLineEdit.clear()
-        self.permalinkLineEdit.setDisabled(False)
-        self.permalinkLineEdit.returnPressed.connect(self.on_downloaded)
+        # Loads permalinks into the permalink combox
+        self.load_permalinks()
+        self.permalinkCmb.setDisabled(False)
+        # self.permalinkLineEdit.returnPressed.connect(self.on_downloaded)
 
         self.downloadPushButton.setDisabled(False)
         self.downloadPushButton.clicked.connect(self.on_downloaded)
@@ -446,77 +566,124 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         # Set XML document
         root = EltTree.Element(r"rfu")
-
+        first_vtx_kept = True
+        first_edge_kept = True
         # Add to our XML document datasets which have been changed
         if self.vertices_added:
             for fid in self.vertices_added:
-                tools.xml_subelt_creator(root, u"sommet",
-                                         data=self.vertices_added[fid],
-                                         action=r"create")
-
+                # Check if vertex is out of the bbox
+                to_export = check_vtx_outofbbox(self.vertices_added_ft[fid], self.ft_bbox)
+                if to_export:
+                    tools.xml_subelt_creator(root, "sommet",
+                                             data=self.vertices_added[fid],
+                                             action=r"create")
+                # If vertex is out of the bbox
+                else:
+                    # Create a new layer to store the vertices non exported
+                    if first_vtx_kept:
+                        if layer_exists(vtx_outofbbox_lname, self.project):
+                            vtx_outofbbox_lyr = self.project.mapLayersByName(vtx_outofbbox_lname)[0]
+                        else:
+                            vtx_outofbbox_lyr = create_vtx_outofbbox_lyr()
+                    # Add the vertex to this layer
+                    if not vtx_outofbbox_lyr.isEditable():
+                        vtx_outofbbox_lyr.startEditing()
+                    vtx_outofbbox_lyr.addFeature(self.vertices_added_ft[fid])
+                    first_vtx_kept = False
+                 
         if self.edges_added:
             for fid in self.edges_added:
-                tools.xml_subelt_creator(root, u"limite",
-                                         data=self.edges_added[fid],
-                                         action=r"create")
-
+                # Check if edge is out of the bbox
+                to_export = check_edge_outofbbox(self.edges_added_ft[fid], self.ft_bbox)
+                if to_export:
+                    tools.xml_subelt_creator(root, "limite",
+                                             data=self.edges_added[fid],
+                                             action=r"create")
+                # If edge is out of the bbox
+                else:
+                    # Create a new layer to store the edges non exported
+                    if first_edge_kept:
+                        if layer_exists(edge_outofbbox_lname, self.project):
+                            edge_outofbbox_lyr = self.project.mapLayersByName(edge_outofbbox_lname)[0]
+                        else:
+                            edge_outofbbox_lyr = create_edge_outofbbox_lyr()
+                    # Add the edge to this layer
+                    if not edge_outofbbox_lyr.isEditable():
+                        edge_outofbbox_lyr.startEditing()
+                    edge_outofbbox_lyr.addFeature(self.edges_added_ft[fid])
+                    first_edge_kept = False
         if self.vertices_removed:
             for fid in self.vertices_removed:
-                tools.xml_subelt_creator(root, u"sommet",
+                tools.xml_subelt_creator(root, "sommet",
                                          data=self.vertices_removed[fid],
                                          action=r"delete")
-
         if self.edges_removed:
             for fid in self.edges_removed:
-                tools.xml_subelt_creator(root, u"limite",
+                tools.xml_subelt_creator(root, "limite",
                                          data=self.edges_removed[fid],
                                          action=r"delete")
-
         if self.vertices_modified:
             for fid in self.vertices_modified:
-                tools.xml_subelt_creator(root, u"sommet",
+                tools.xml_subelt_creator(root, "sommet",
                                          data=self.vertices_modified[fid],
                                          action=r"update")
-
         if self.edges_modified:
             for fid in self.edges_modified:
-                tools.xml_subelt_creator(root, u"limite",
+                tools.xml_subelt_creator(root, "limite",
                                          data=self.edges_modified[fid],
                                          action=r"update")
-
         # Create a new changeset Id
         changeset_id = self.create_changeset(enr_api_dossier=enr_api_dossier, commentaire=commentaire)
-
         # Add changeset value in our XML document
         root.attrib[r"changeset"] = changeset_id
-
+        
         # Send data
         edit = self.conn.edit(self.zone, EltTree.tostring(root))
         if edit.code != 200:
-            raise Exception(edit.read())
-
+            err_tree = EltTree.fromstring(edit.read())
+            msgs_log = []
+            for log in err_tree.iter(r"log"):
+                msgs_log.append("%s: %s" % (log.attrib["type"], log.text))
+            raise Exception(msgs_log)
         tree = EltTree.fromstring(edit.read())
-
         err = tree.find(r"./erreur")
         if err:
-            raise Exception(err.text)
+            err_tree = EltTree.fromstring(err)
+            msgs_log = []
+            for log in err_tree.iter(r"log"):
+                msgs_log.append("%s: %s" % (log.attrib["type"], log.text))
+            raise Exception(msgs_log)
 
-        # Returns log info
+        #Returns log info
         msgs_log = []
         for log in tree.iter(r"log"):
-            msgs_log.append(u"%s: %s" % (log.attrib[u"type"], log.text))
+            msgs_log.append("%s: %s" % (log.attrib["type"], log.text))
 
         # Close the changeset
         self.destroy_changeset(changeset_id)
 
         # Reset all
         self.edges_added = {}
+        self.edges_added_ft = {}
         self.vertices_added = {}
+        self.vertices_added_ft = {}
         self.edges_removed = {}
         self.vertices_removed = {}
         self.edges_modified = {}
         self.vertices_modified = {}
-
+        
+        # Alert message if elements out of bbox
+        msg_outbbox = ""
+        if not first_vtx_kept:
+            msg_outbbox = msg_outbbox_vtx.format(vtx_outofbbox_lname)
+        if not first_edge_kept:
+            if msg_outbbox != "":
+                msg_outbbox += "<br>"
+            msg_outbbox += msg_outbbox_edge.format(edge_outofbbox_lname)
+        if msg_outbbox != "":
+            self.canvas.refresh()
+            m_box = mbox_w_params(tl_atn, txt_msg_outbbox, msg_outbbox)
+            m_box.exec_()
         return msgs_log
 
     def create_changeset(self, enr_api_dossier=None, commentaire=None):
@@ -531,16 +698,16 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         tree = EltTree.fromstring(opencs.read())
 
-        err = tree.find(r"./erreur")
+        err = tree.find(r"./log")
         if err:
             raise Exception(err.text)
 
-        treeterator = tree.getiterator(tag=r"changeset")
+        treeterator = list(tree.getiterator(tag=r"changeset"))
 
         # We should get only one changeset
         if len(treeterator) != 1:
-            raise Exception(u"Le nombre de \'changeset\' est incohérent.\n"
-                            u"Merci de contacter l'administrateur Géofoncier.")
+            raise Exception("Le nombre de \'changeset\' est incohérent.\n"
+                            "Merci de contacter l'administrateur Géofoncier.")
 
         return treeterator[0].attrib[r"id"]
 
@@ -554,7 +721,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         tree = EltTree.fromstring(closecs.read())
 
-        err = tree.find(r"./erreur")
+        err = tree.find(r"./log")
         if err:
             raise Exception(err.text)
 
@@ -570,47 +737,49 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.iface.messageBar().clearWidgets()
 
         if msg:
-            return QMessageBox.warning(self, r"Warning", str(msg))
+            return QMessageBox.warning(self, r"Attention", msg)
 
         return
 
     def extract_layers(self, tree):
         """Return a list of RFU layers."""
-
+        
         # Create vector layers..
         l_vertex = QgsVectorLayer(r"Point?crs=epsg:4326&index=yes",
-                                  u"Sommet RFU", r"memory")
+                                  "Sommet RFU", r"memory")
         l_edge = QgsVectorLayer(r"LineString?crs=epsg:4326&index=yes",
-                                u"Limite RFU", r"memory")
+                                "Limite RFU", r"memory")
 
         p_vertex = l_vertex.dataProvider()
         p_edge = l_edge.dataProvider()
 
         # Define default style renderer..
-
-        renderer_vertex = QgsRuleBasedRendererV2(QgsMarkerSymbolV2())
+        renderer_vertex = QgsRuleBasedRenderer(QgsMarkerSymbol())
         vertex_root_rule = renderer_vertex.rootRule()
         vertex_rules = (
             (
-                 (u"Borne, borne à puce, pierre, piquet, clou ou broche"),
-                 (u"$id >= 0 AND \"som_nature\" IN ('Borne',"
-                  u"'Borne à puce', 'Pierre', 'Piquet', 'Clou ou broche')"),
+                 ("Borne, borne à puce, pierre, piquet, clou ou broche"),
+                 ("$id >= 0 AND \"som_nature\" IN ('Borne',"
+                  "'Borne à puce', 'Pierre', 'Piquet', 'Clou ou broche')"),
                  r"#EC0000", 2.2
             ), (
-                 (u"Axe cours d'eau, axe fossé, haut de talus, pied de talus"),
-                 (u"$id >= 0 AND \"som_nature\" IN ('Axe cours d\'\'eau',"
-                  u"'Axe fossé', 'Haut de talus', 'Pied de talus')"),
+                 ("Axe cours d'eau, axe fossé, haut de talus, pied de talus"),
+                 ("$id >= 0 AND \"som_nature\" IN ('Axe cours d\'\'eau',"
+                  "'Axe fossé', 'Haut de talus', 'Pied de talus')"),
                  r"#EE8012", 2.2
             ), (
-                 (u"Angle de bâtiment, axe de mur, angle de mur, "
-                  u"angle de clôture, pylône et toute autre valeur"),
-                 (u"$id >= 0 AND \"som_nature\" NOT IN ('Borne',"
-                  u"'Borne à puce', 'Pierre', 'Piquet', 'Clou ou broche',"
-                  u"'Axe cours d\'\'eau', 'Axe fossé', 'Haut de talus',"
-                  u"'Pied de talus')"),
+                 ("Angle de bâtiment, axe de mur, angle de mur, "
+                  "angle de clôture, pylône et toute autre valeur"),
+                 ("$id >= 0 AND \"som_nature\" NOT IN ('Borne',"
+                  "'Borne à puce', 'Pierre', 'Piquet', 'Clou ou broche',"
+                  "'Axe cours d\'\'eau', 'Axe fossé', 'Haut de talus',"
+                  "'Pied de talus')"),
                  r"#9784EC", 2.2
             ), (
-                u"Temporaire", r"$id < 0", "cyan", 2.4
+                "Temporaire", r"$id < 0", "cyan", 2.4
+            ),
+               (
+                "Point nouveau à traiter car proche d'un existant", r"point_rfu_proche is not null", "#bcff03", 3
             ))
 
         for label, expression, color, size in vertex_rules:
@@ -622,9 +791,9 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             vertex_root_rule.appendChild(rule)
 
         vertex_root_rule.removeChildAt(0)
-        l_vertex.setRendererV2(renderer_vertex)
+        l_vertex.setRenderer(renderer_vertex)
 
-        renderer_edge = QgsRuleBasedRendererV2(QgsLineSymbolV2())
+        renderer_edge = QgsRuleBasedRenderer(QgsLineSymbol())
         edge_root_rule = renderer_edge.rootRule()
         edge_rules = ((r"Limite", r"$id >= 0", "#0A0AFF", 0.5),
                       (r"Temporaire", r"$id < 0", "cyan", 1))
@@ -638,33 +807,12 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             edge_root_rule.appendChild(rule)
 
         edge_root_rule.removeChildAt(0)
-        l_edge.setRendererV2(renderer_edge)
+        l_edge.setRenderer(renderer_edge)
 
         # Add fields..
-        p_vertex.addAttributes([
-                    QgsField(r"@id_noeud", QVariant.LongLong),
-                    # QgsField(r"@changeset", QVariant.Int),
-                    # QgsField(r"@timestamp", QVariant.Date),
-                    QgsField(r"@version", QVariant.Int),
-                    QgsField(r"som_ge_createur", QVariant.String),
-                    QgsField(r"som_nature", QVariant.String),
-                    QgsField(r"som_precision_rattachement", QVariant.Int),
-                    QgsField(r"som_coord_est", QVariant.Double),
-                    QgsField(r"som_coord_nord", QVariant.Double),
-                    QgsField(r"som_representation_plane", QVariant.String),
-                    # QgsField(r"date_creation", QVariant.Date)
-                    ])
+        p_vertex.addAttributes(vtx_atts)
 
-        p_edge.addAttributes([
-                    QgsField(r"@id_arc", QVariant.LongLong),
-                    # QgsField(r"@id_noeud_debut", QVariant.Int),
-                    # QgsField(r"@id_noeud_fin", QVariant.Int),
-                    # QgsField(r"@changeset", QVariant.Int),
-                    # QgsField(r"@timestamp", QVariant.Date),
-                    QgsField(r"@version", QVariant.Int),
-                    QgsField(r"lim_ge_createur", QVariant.String),
-                    # QgsField(r"lim_date_creation", QVariant.Date)
-                    ])
+        p_edge.addAttributes(edge_atts)
 
         # Add features from xml tree..
         # ..to vertex layer..
@@ -673,25 +821,21 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
             ft_vertex = QgsFeature()
             ft_vertex.setGeometry(QgsGeometry.fromWkt(e.attrib[r"geometrie"]))
-
             _id_noeud = int(e.attrib[r"id_noeud"])
-            # _changeset = int(e.attrib[r"changeset"])
-            # _timestamp = QDateTime(datetime.strptime(
-            #                 e.attrib[r"timestamp"], r"%Y-%m-%d %H:%M:%S.%f"))
             _version = int(e.attrib[r"version"])
-            som_ge_createur = unicode(e.find(r"./som_ge_createur").text)
-            som_nature = unicode(e.find(r"./som_nature").text)
+            som_ge_createur = str(e.find(r"./som_ge_createur").text)
+            som_nature = str(e.find(r"./som_nature").text)
             som_prec_rattcht = int(e.find(r"./som_precision_rattachement").text)
             som_coord_est = float(e.find(r"./som_coord_est").text)
             som_coord_nord = float(e.find(r"./som_coord_nord").text)
-            som_repres_plane = unicode(e.find(r"./som_representation_plane").text)
-            # som_date_creation = QDate(datetime.strptime(
-            #                         e.find(r"./som_date_creation").text, r"%Y-%m-%d").date())
+            som_repres_plane = str(e.find(r"./som_representation_plane").text)
+            som_tolerance = float(e.find(r"./som_tolerance").text)
+            # Field used to store the attestation_qualite value 
+            # when modifying a vertex ("false" or "true")
+            attestation_qualite = "false"
 
             ft_vertex.setAttributes([
                         _id_noeud,
-                        # _changeset,
-                        # _timestamp,
                         _version,
                         som_ge_createur,
                         som_nature,
@@ -699,7 +843,9 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                         som_coord_est,
                         som_coord_nord,
                         som_repres_plane,
-                        # som_date_creation
+                        som_tolerance,
+                        attestation_qualite,
+                        NULL
                         ])
 
             fts_vertex.append(ft_vertex)
@@ -710,27 +856,14 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
             ft_edge = QgsFeature()
             ft_edge.setGeometry(QgsGeometry.fromWkt(e.attrib[r"geometrie"]))
-
             _id_arc = int(e.attrib[r"id_arc"])
-            # _id_noeud_debut = int(e.attrib[r"id_noeud_debut"])
-            # _id_noeud_fin = int(e.attrib[r"id_noeud_fin"])
-            # _changeset = int(e.attrib[r"changeset"])
-            # _timestamp = QDateTime(datetime.strptime(
-            #                 e.attrib[r"timestamp"], r"%Y-%m-%d %H:%M:%S.%f"))
             _version = int(e.attrib[r"version"])
-            lim_ge_createur = unicode(e.find(r"./lim_ge_createur").text)
-            # lim_date_creation = QDate(datetime.strptime(
-            #                        e.find(r"./lim_date_creation").text, r"%Y-%m-%d").date())
+            lim_ge_createur = str(e.find(r"./lim_ge_createur").text)
 
             ft_edge.setAttributes([
                         _id_arc,
-                        # _id_noeud_debut,
-                        # _id_noeud_fin,
-                        # _changeset,
-                        # _timestamp,
                         _version,
                         lim_ge_createur,
-                        # lim_date_creation
                         ])
 
             fts_edge.append(ft_edge)
@@ -749,19 +882,25 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         # Check if valid..
         if not l_vertex.isValid() or not l_edge.isValid():
-            raise Exception(u"Une erreur est survenue lors du chargement de la couche.")
+            raise Exception("Une erreur est survenue lors du chargement de la couche.")
 
-        # Set labelling...
-        palyr = QgsPalLayerSettings()
-        palyr.enabled = True
-        # palyr.readFromLayer(l_vertex)
-        palyr.fieldName = r"$id"  # Expression $id
-        palyr.placement = 1  # ::OverPoint
-        palyr.quadOffset = 2  # ::QuadrantAboveRight
-        palyr.setDataDefinedProperty(80, True, True, r"1", "")  # ::OffsetUnits -> ::MM
-        palyr.xOffset = 2.0
-        palyr.yOffset = -1.0
-        palyr.writeToLayer(l_vertex)
+        # No more labelling on points
+        # # Set labelling...
+        # palyr_stgs = QgsPalLayerSettings()
+        # txt_format = QgsTextFormat()
+        
+        # txt_format.setSize(8)
+        # palyr_stgs.setFormat(txt_format)
+        # palyr_stgs.isExpression = True
+        # palyr_stgs.fieldName = r"$id"  # Expression $id
+        # palyr_stgs.placement = QgsPalLayerSettings.OverPoint  # ::OverPoint
+        # palyr_stgs.displayAll = True
+        # palyr_stgs.quadOffset = 2  # ::QuadrantAboveRight
+        # palyr_stgs.xOffset = 1.0
+        # palyr_stgs.yOffset = -1.0
+        # palyr_stgs = QgsVectorLayerSimpleLabeling(palyr_stgs)
+        # l_vertex.setLabeling(palyr_stgs)
+        # l_vertex.setLabelsEnabled(True)
 
         # Then return layers..
         return [l_vertex, l_edge]
@@ -795,9 +934,11 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
             if layer_id == self.l_vertex.id():
                 self.vertices_added[ft.id()] = attrib
+                self.vertices_added_ft[ft.id()] = ft
 
             if layer_id == self.l_edge.id():
                 self.edges_added[ft.id()] = attrib
+                self.edges_added_ft[ft.id()] = ft
 
     def modify_feature(self, layer_id, feature, qgsgeom=None):
 
@@ -827,5 +968,66 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                 continue
 
         crs = QgsCoordinateReferenceSystem(epsg, QgsCoordinateReferenceSystem.EpsgCrsId)
-        self.canvas.setDestinationCrs(crs)
-        self.canvas.zoomToFullExtent()
+        self.project.setCrs(crs)       
+        
+    # Stop zoom when the scale limit is exceeded
+    def limit_cvs_scale(self):
+        if self.canvas.scale() > cvs_scale_limit:
+            self.disconn_scale_limit()
+            self.zoom_bbox()
+            self.canvas.zoomScale(cvs_scale_limit)
+            self.canvas.scaleChanged.connect(self.limit_cvs_scale)
+
+    def zoom_bbox(self):
+        self.canvas.setExtent(QgsRectangle(
+                                            self.bbox_crsproject.xMinimum(),
+                                            self.bbox_crsproject.yMinimum(),
+                                            self.bbox_crsproject.xMaximum(),
+                                            self.bbox_crsproject.yMaximum()
+                                           )
+                              )
+    
+    def disconn_scale_limit(self):
+        self.canvas.scaleChanged.disconnect(self.limit_cvs_scale)
+        
+    def conn_scale_limit(self):
+        self.canvas.scaleChanged.connect(self.limit_cvs_scale)
+        
+    # Loads permalinks from the json file into the combobox
+    def load_permalinks(self):
+        try:
+            self.json_path = os.path.join(os.path.dirname(__file__), r"permalinks.json")
+        except IOError as error:
+            raise error
+        with codecs.open(self.json_path, encoding='utf-8', mode='r') as json_file:
+            json_permalinks = json.load(json_file)
+            self.permalinks = json_permalinks[r"permalinks"]
+            current_permalink_idx = json_permalinks[r"current_permalink_idx"]
+        if len(self.permalinks) > 0:
+            self.permalinkCmb.clear()
+            for idx, permalink in enumerate(self.permalinks):
+                self.permalinkCmb.addItem(permalink)
+            self.permalinkCmb.setCurrentIndex(current_permalink_idx)
+            # self.permalinkCmb.lineEdit().selectAll()
+            
+    # Save permalinks in the json file (limited to 5 permalinks)
+    def save_permalinks(self, permalink):
+        # Update the json file
+        json_permalinks = {}
+        if permalink not in self.permalinks:
+            # Update the permalinks list
+            if len(self.permalinks) == 5:
+                del self.permalinks[0]
+            self.permalinks.append(permalink)
+            json_permalinks["current_permalink_idx"] = len(self.permalinks) - 1
+        else:
+            json_permalinks["current_permalink_idx"] = self.permalinkCmb.currentIndex()
+        json_permalinks["permalinks"] = self.permalinks
+        
+        with codecs.open(self.json_path, encoding='utf-8', mode='w') as json_file:
+                json_file.write(json.dumps(json_permalinks, indent=4, separators=(',', ': '), ensure_ascii=False))
+                
+        
+    
+
+            

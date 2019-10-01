@@ -1,17 +1,28 @@
-#!/usr/bin/env python2.7
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2015 Géofoncier (R)
+"""
+    ***************************************************************************
+    * Plugin name:   GeofoncierEditeurRFU
+    * Plugin type:   QGIS 3 plugin
+    * Module:        Config
+    * Description:   Define a class that provides to the plugin
+    *                GeofoncierEditeurRFU the Configuration
+    * First release: 2015
+    * Last release:  2019-08-19
+    * Copyright:     (C) 2015 Géofoncier(R), (C) 2019 SIGMOÉ(R),Géofoncier(R)
+    * Email:         em at sigmoe.fr
+    * License:       Proprietary license
+    ***************************************************************************
+"""
 
 
 import os
 import json
 
 
-class Configuration(object):
+class Configuration:
 
     def __init__(self):
-
         try:
             self.path = os.path.join(os.path.dirname(__file__), r"config.json")
         except IOError as error:
@@ -38,12 +49,13 @@ class Configuration(object):
             self.user = str(self.config_api[r"user"])
 
         self.pw = None
+        # To clean old config.json
         if r"password" in self.config_api:
-            self.pw = str(self.config_api[r"password"])
-
+            del self.config_api[r"password"]
+            self.save(data=self.config)
+            
     def load(self):
         """Return the yaml configuration file.."""
-
         with open(self.path, r"r") as that:
             return json.load(that)
 
@@ -63,14 +75,11 @@ class Configuration(object):
         password -> str
 
         """
-        self.config_api[r"user"] = user.encode(r"ascii", r"ignore")
-        self.config_api[r"password"] = password.encode(r"ascii", r"ignore")
-
+        self.config_api[r"user"] = user
         self.save(data=self.config)
 
     def erase_login_info(self):
         """Erase login informations.."""
-
         if r"user" in self.config_api:
             self.config_api.pop(r"user")
 
