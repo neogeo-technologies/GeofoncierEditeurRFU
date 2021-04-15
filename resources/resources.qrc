@@ -7,6 +7,7 @@
         <file alias="rfu_btn_del_vtx">resources/rfu_btn_del_vtx.png</file>
         <file alias="rfu_btn_import_csvrfu">resources/rfu_btn_import_csvrfu.png</file>
         <file alias="rfu_btn_import_dxf2rfu">resources/rfu_btn_import_dxf2rfu.png</file>
+        <file alias="rfu_btn_cut_oldlimit">resources/rfu_btn_cut_oldlimit.png</file>
         <file alias="rfu_btn_pt_to_plot">resources/rfu_btn_pt_to_plot.png</file>
         <file alias="rfu_btn_del_ptplot">resources/rfu_btn_del_ptplot.png</file>
         <file alias="rfu_btn_show_ptplots">resources/rfu_btn_show_ptplots.png</file>
@@ -14,6 +15,7 @@
         <file alias="select_nwvtx">resources/select_nwvtx.png</file>
         <file alias="select_rfuvtx">resources/select_rfuvtx.png</file>
         <file alias="valid_nwvtx">resources/valid_nwvtx.png</file>
+        <file alias="select_oldlim">resources/select_oldlim.png</file>
         <file alias="dl">resources/dl.png</file>
         <file alias="reset">resources/reset.png</file>
         <file alias="select">resources/select.png</file>
