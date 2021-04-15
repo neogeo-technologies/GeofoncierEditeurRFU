@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 
 """
     ***************************************************************************
@@ -7,10 +7,10 @@
     * Module:        Editor RFU Geofoncier
     * Description:   Initialization
     * First release: 2015
-    * Last release:  2019-08-19
-    * Copyright:     (C) 2015 Géofoncier(R), (C) 2019 SIGMOÉ(R),Géofoncier(R)
+    * Last release:  2021-03-12
+    * Copyright:     (C) 2019,2020,2021 GEOFONCIER(R), SIGMOÉ(R)
     * Email:         em at sigmoe.fr
-    * License:       Proprietary license
+    * License:       GPL license
     ***************************************************************************
 """
 

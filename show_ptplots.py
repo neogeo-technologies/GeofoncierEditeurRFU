@@ -7,12 +7,12 @@
     * Module:        Show ptplots
     * Description:   Define a class that provides to the plugin
     *                GeofoncierEditeurRFU the possibility to show the 
-    *                list of plots associated to  specific vertex
+    *                list of plots associated to specific vertex
     * First release: 2019-07-25
-    * Last release:  2019-09-24
-    * Copyright:     (C) 2019 SIGMOÉ(R),Géofoncier(R)
+    * Last release:  2021-03-12
+    * Copyright:     (C) 2019,2020,2021 GEOFONCIER(R), SIGMOÉ(R)
     * Email:         em at sigmoe.fr
-    * License:       Proprietary license
+    * License:       GPL license
     ***************************************************************************
 """
 

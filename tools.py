@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 
 """
     ***************************************************************************
@@ -8,10 +8,10 @@
     * Description:   Define a class that provides to the plugin
     *                GeofoncierEditeurRFU several tools
     * First release: 2015
-    * Last release:  2019-08-19
-    * Copyright:     (C) 2015 Géofoncier(R), (C) 2019 SIGMOÉ(R),Géofoncier(R)
+    * Last release:  2021-03-12
+    * Copyright:     (C) 2019,2020,2021 GEOFONCIER(R), SIGMOÉ(R)
     * Email:         em at sigmoe.fr
-    * License:       Proprietary license
+    * License:       GPL license
     ***************************************************************************
 """
 
@@ -28,7 +28,34 @@ import xml.etree.ElementTree as ElementTree
 from .global_fnc import *
 
 
-def request(url, method=None, user_agent=None, user=None,
+def request(url, method=None, user_agent=None, access_token=None, params=None, data=None, content_type=None):
+
+    if params:
+        url = r"%s?%s" % (url, urllib.parse.urlencode(params))
+        
+    if data is not None:
+        data = urllib.parse.urlencode(data)
+        # data must be passed as bytes when used with urlopen
+        data = data.encode('ascii')
+        
+
+    req = urllib.request.Request(url, data)
+
+    if method == r"PUT":
+        req.get_method = lambda: r"PUT"
+    if user_agent:
+        req.add_header(r"User-agent", user_agent)
+    if access_token:
+        req.add_header(r"Authorization", r"Bearer %s" % access_token)
+    
+    try:
+        return urllib.request.urlopen(req)
+    except urllib.error.HTTPError as err:
+        return err
+    except urllib.error.URLError:
+        raise
+        
+def get_token(url, method=None, user_agent=None, user=None,
             password=None, params=None, data=None, content_type=None):
 
     if params:

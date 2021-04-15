@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 
 """
     ***************************************************************************
@@ -8,16 +8,17 @@
     * Description:   Define a class that provides to the plugin
     *                GeofoncierEditeurRFU the Configuration
     * First release: 2015
-    * Last release:  2019-08-19
-    * Copyright:     (C) 2015 Géofoncier(R), (C) 2019 SIGMOÉ(R),Géofoncier(R)
+    * Last release:  2021-03-12
+    * Copyright:     (C) 2019,2020,2021 GEOFONCIER(R), SIGMOÉ(R)
     * Email:         em at sigmoe.fr
-    * License:       Proprietary license
+    * License:       GPL license
     ***************************************************************************
 """
 
 
 import os
 import json
+from .global_fnc import *
 
 
 class Configuration:
@@ -53,6 +54,10 @@ class Configuration:
         if r"password" in self.config_api:
             del self.config_api[r"password"]
             self.save(data=self.config)
+        
+        self.access_token = None
+        if r"access_token" in self.config_api:
+            self.access_token = str(self.config_api[r"access_token"])
             
     def load(self):
         """Return the yaml configuration file.."""
@@ -76,6 +81,15 @@ class Configuration:
 
         """
         self.config_api[r"user"] = user
+        self.save(data=self.config)
+        
+    def set_token_info(self, token):
+        """Save token in plain text..
+
+        token -> str
+
+        """
+        self.config_api[r"access_token"] = token
         self.save(data=self.config)
 
     def erase_login_info(self):

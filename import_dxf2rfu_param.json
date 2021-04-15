@@ -1,29 +1,31 @@
 {
     "dxfparams": {
-        "vtxLyr": "0",
-        "edgesLyr": "0",
-        "precClass": "Classe 1 : inférieur à 5 cm",
-        "Angle de bâtiment": "Pas de bloc associé",
-        "Angle de clôture": "Pas de bloc associé",
-        "Angle de mur": "Pas de bloc associé",
-        "Arbre": "Pas de bloc associé",
-        "Axe cours d'eau": "Pas de bloc associé",
-        "Axe de mur": "Pas de bloc associé",
-        "Axe fossé": "Pas de bloc associé",
-        "Borne": "Tous les blocs du calque",
-        "Borne à puce": "Pas de bloc associé",
-        "Boulon d'arpentage": "Pas de bloc associé",
-        "Clou ou broche": "Pas de bloc associé",
-        "Croix gravée": "Pas de bloc associé",
-        "Haut de talus": "Pas de bloc associé",
-        "Marque de peinture": "Pas de bloc associé",
-        "Non matérialisable": "Pas de bloc associé",
-        "Non matérialisé": "Pas de bloc associé",
-        "Pied de talus": "Pas de bloc associé",
-        "Pierre": "Pas de bloc associé",
-        "Piquet": "Pas de bloc associé",
-        "Pylône": "Pas de bloc associé",
-        "Tirefond": "Pas de bloc associé",
-        "Autre type": "Pas de bloc associé"
+        "createur": "99999",
+        "vtx_lyr": "POINTS NVX",
+        "prec_class": "Classe 1 : inférieur à 5 cm",
+        "delim_pub": "False",
+        "blk_corrs": {
+            "Angle de bâtiment": "Pas de bloc associé",
+            "Angle de clôture": "Pas de bloc associé",
+            "Angle de mur": "Pas de bloc associé",
+            "Arbre": "Pas de bloc associé",
+            "Axe cours d'eau": "Pas de bloc associé",
+            "Axe de mur": "Pas de bloc associé",
+            "Axe fossé": "Pas de bloc associé",
+            "Borne": "Pas de bloc associé",
+            "Boulon d'arpentage": "Pas de bloc associé",
+            "Clou ou broche": "Pas de bloc associé",
+            "Croix gravée": "Pas de bloc associé",
+            "Haut de talus": "Pas de bloc associé",
+            "Marque de peinture": "Pas de bloc associé",
+            "Pied de talus": "Pas de bloc associé",
+            "Piquet": "Pas de bloc associé",
+            "Pylône": "Pas de bloc associé",
+            "Tirefond": "Pas de bloc associé"
+        },
+        "lim_lyrs": {
+            "Limite naturelle": "Pas de calque associé",
+            "Limite privée": "LIMITES NOUVELLES RFU"
+        }
     }
 }

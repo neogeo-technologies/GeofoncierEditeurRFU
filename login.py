@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 
 """
     ***************************************************************************
@@ -8,10 +8,10 @@
     * Description:   Define a class that provides to the plugin
     *                GeofoncierEditeurRFU the Login dialog
     * First release: 2015
-    * Last release:  2019-08-19
-    * Copyright:     (C) 2015 Géofoncier(R), (C) 2019 SIGMOÉ(R),Géofoncier(R)
+    * Last release:  2021-03-12
+    * Copyright:     (C) 2019,2020,2021 GEOFONCIER(R), SIGMOÉ(R)
     * Email:         em at sigmoe.fr
-    * License:       Proprietary license
+    * License:       GPL license
     ***************************************************************************
 """
 
@@ -26,6 +26,8 @@ import xml.etree.ElementTree as ElementTree
 from .client import APIClient
 from .config import Configuration
 from .global_fnc import *
+
+import json
 
 
 gui_dlg_login, _ = uic.loadUiType(
@@ -62,17 +64,19 @@ class GeoFoncierAPILogin(QDialog, gui_dlg_login):
         self.pw = self.passwordLineEdit.text()
 
         self.conn = APIClient(user=self.user, pw=self.pw)
+        self.config.set_token_info(self.conn.token_val())
 
         if self.rememberMeCheckBox.isChecked():
             self.config.set_login_info(self.user, self.pw)
+            self.config.set_token_info(self.conn.token_val())
         else:
             self.config.erase_login_info()
 
         resp = self.conn.get_my_capabilities()
+        resp_read = resp.read()
+        # urlresp_to_file(resp_read)
         if resp.code != 200:
-            # Catch the error specified by the API..
-
-            tree = ElementTree.fromstring(resp.read())
+            tree = ElementTree.fromstring(resp_read)
             elt_err = tree.find(r"./log")
             if elt_err.text:
                 msg = elt_err.text
@@ -83,9 +87,15 @@ class GeoFoncierAPILogin(QDialog, gui_dlg_login):
             # Then display the error in a message box..
             return QMessageBox.warning(self, r"Connexion impossible", msg)
 
-        tree = ElementTree.fromstring(resp.read())
+        
+        # DEBUG
+        # urlresp_to_file(resp_read) 
+        
+        tree = ElementTree.fromstring(resp_read)
 
         # On connection success, get user's capability informations..
+        
+            
 
         elt_extract = tree.find(r"./cle_api_rfu/extraction_rfu")
         if elt_extract.text == r"oui":
