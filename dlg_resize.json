@@ -2,5 +2,5 @@
     "dlg_show_capabilities": true,
     "dlg_show_ptplots": true,
     "dlg_transfo_pt_to_plots": true,
-    "dlg_cut_oldlimit": true
+    "dlg_cut_oldlimit": true 
 }
