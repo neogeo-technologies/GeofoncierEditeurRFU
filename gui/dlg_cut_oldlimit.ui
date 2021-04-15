@@ -1,0 +1,431 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <class>dlgTrasnfoPtToPlot</class>
+ <widget class="QDialog" name="dlgTrasnfoPtToPlot">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>800</width>
+    <height>232</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>722</width>
+    <height>232</height>
+   </size>
+  </property>
+  <property name="maximumSize">
+   <size>
+    <width>800</width>
+    <height>400</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>Couper une limite existante à l'emplacement d'un ou de plusieurs sommets nouveaux</string>
+  </property>
+  <property name="styleSheet">
+   <string notr="true">QTableView QHeaderView::section{
+		border: 1px solid #ffffff;
+		background-color: #818181;
+		color: #ffffff;
+    }
+QGroupBox {
+	margin-top: 16px;
+	border: 1px solid gray;
+	border-radius: 4px;
+}
+QGroupBox::title {
+	subcontrol-origin: margin;
+    subcontrol-position: top left;
+	padding: 2px 5px 2px 5px;
+	margin: 2px 0px 0px 0px;
+	border:1px solid gray;
+	border-radius: 2px;
+	background: #696969;
+	color: #ffffff;
+}
+	</string>
+  </property>
+  <layout class="QGridLayout" name="gridLayout">
+   <property name="topMargin">
+    <number>15</number>
+   </property>
+   <property name="verticalSpacing">
+    <number>15</number>
+   </property>
+   <item row="1" column="0">
+    <layout class="QHBoxLayout" name="butLay">
+     <item>
+      <widget class="QPushButton" name="resize_btn">
+       <property name="enabled">
+        <bool>true</bool>
+       </property>
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="minimumSize">
+        <size>
+         <width>24</width>
+         <height>24</height>
+        </size>
+       </property>
+       <property name="maximumSize">
+        <size>
+         <width>24</width>
+         <height>24</height>
+        </size>
+       </property>
+       <property name="text">
+        <string/>
+       </property>
+       <property name="icon">
+        <iconset>
+         <normaloff>:/resources/btn_resize</normaloff>:/resources/btn_resize</iconset>
+       </property>
+       <property name="iconSize">
+        <size>
+         <width>24</width>
+         <height>24</height>
+        </size>
+       </property>
+       <property name="autoDefault">
+        <bool>false</bool>
+       </property>
+       <property name="default">
+        <bool>false</bool>
+       </property>
+       <property name="flat">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="buttHsp">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+     <item>
+      <widget class="QPushButton" name="valid_btn">
+       <property name="text">
+        <string>Quitter</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item row="0" column="0">
+    <widget class="QGroupBox" name="farvtxGp">
+     <property name="title">
+      <string>Couper une limite existante à l'emplacement d'un ou de plusieurs sommets nouveaux</string>
+     </property>
+     <layout class="QGridLayout" name="gridLayout_3">
+      <property name="horizontalSpacing">
+       <number>0</number>
+      </property>
+      <item row="3" column="0">
+       <spacer name="horizontalSpacer_2">
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+        <property name="sizeType">
+         <enum>QSizePolicy::Fixed</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>20</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="3" column="1">
+       <widget class="QLabel" name="selnwvxtLab">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>670</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>670</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QLabel{
+	border: 1px solid #ffffff;
+	border-radius: 1px;
+	background: #0b79ff;
+	padding: 0px 3px 0px 3px;
+	color: #ffffff
+}</string>
+        </property>
+        <property name="text">
+         <string>1. Sélectionnez la limite qui croise les sommets nouveaux</string>
+        </property>
+       </widget>
+      </item>
+      <item row="3" column="2">
+       <widget class="QPushButton" name="sel_oldlim_btn">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset>
+          <normaloff>:/resources/select_oldlim</normaloff>:/resources/select_oldlim</iconset>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="autoDefault">
+         <bool>false</bool>
+        </property>
+        <property name="default">
+         <bool>false</bool>
+        </property>
+        <property name="flat">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="2" column="0" colspan="5">
+       <widget class="QLabel" name="farvxtLab1">
+        <property name="text">
+         <string>vous devez couper la limite existante à l'emplacement des sommets nouveaux en réalisant les 3 étapes suivantes:</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="1">
+       <widget class="QLabel" name="selrfuvtxLab">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>670</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>670</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QLabel{
+	border: 1px solid #ffffff;
+	border-radius: 1px;
+	background: #79d7d4;
+	padding: 0px 3px 0px 3px;
+	color: #ffffff
+}</string>
+        </property>
+        <property name="text">
+         <string>2. Sélectionnez un ou plusieurs sommets nouveaux chevauchant la limite à couper (clic droit pour terminer la sélection)</string>
+        </property>
+       </widget>
+      </item>
+      <item row="4" column="2">
+       <widget class="QPushButton" name="sel_nwvtx_btn">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset>
+          <normaloff>:/resources/select_nwvtx</normaloff>:/resources/select_nwvtx</iconset>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="autoDefault">
+         <bool>true</bool>
+        </property>
+        <property name="default">
+         <bool>false</bool>
+        </property>
+        <property name="flat">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="1">
+       <widget class="QLabel" name="validop_lab">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>670</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>670</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="styleSheet">
+         <string notr="true">QLabel{
+	border: 1px solid #ffffff;
+	border-radius: 1px;
+	background: #00cf64;
+	padding: 0px 3px 0px 3px;
+	color: #ffffff
+}</string>
+        </property>
+        <property name="text">
+         <string>3. Validez la suppression de l'ancienne limite et la création des nouvelles limites passant par les sommets nouveaux</string>
+        </property>
+       </widget>
+      </item>
+      <item row="5" column="2">
+       <widget class="QPushButton" name="validop_btn">
+        <property name="enabled">
+         <bool>true</bool>
+        </property>
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="maximumSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset>
+          <normaloff>:/resources/valid_nwvtx</normaloff>:/resources/valid_nwvtx</iconset>
+        </property>
+        <property name="iconSize">
+         <size>
+          <width>24</width>
+          <height>24</height>
+         </size>
+        </property>
+        <property name="autoDefault">
+         <bool>true</bool>
+        </property>
+        <property name="default">
+         <bool>false</bool>
+        </property>
+        <property name="flat">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item row="6" column="1">
+       <spacer name="verticalSpacer">
+        <property name="orientation">
+         <enum>Qt::Vertical</enum>
+        </property>
+        <property name="sizeHint" stdset="0">
+         <size>
+          <width>20</width>
+          <height>40</height>
+         </size>
+        </property>
+       </spacer>
+      </item>
+      <item row="1" column="0" colspan="5">
+       <widget class="QLabel" name="farvxtLab1_2">
+        <property name="text">
+         <string>Si vous souhaitez ajouter des sommets nouveaux à une limite déjà existante,</string>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </widget>
+   </item>
+  </layout>
+ </widget>
+ <resources/>
+ <connections/>
+</ui>
