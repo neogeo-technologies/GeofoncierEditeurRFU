@@ -10,7 +10,7 @@
     * Last release:  2021-03-12
     * Copyright:     (C) 2019,2020,2021 GEOFONCIER(R), SIGMOÉ(R)
     * Email:         em at sigmoe.fr
-    * License:       GPL license
+    * License:       GPL license 
     ***************************************************************************
 """
 
