@@ -8,10 +8,10 @@
     * Description:   Define a class that provides to the plugin
     *                the possibility to choice one ref_doss among several doss
     * First release: 2019-07-19
-    * Last release:  2019-08-19
-    * Copyright:     (C) 2019 SIGMOÉ(R),Géofoncier(R)
+    * Last release:  2021-03-12
+    * Copyright:     (C) 2019,2020,2021 GEOFONCIER(R), SIGMOÉ(R)
     * Email:         em at sigmoe.fr
-    * License:       Proprietary license
+    * License:       GPL license 
     ***************************************************************************
 """
 

@@ -7,14 +7,15 @@
     * Module:        Global Vars
     * Description:   Global variables
     * First release: 2018-07-16
-    * Last release:  2019-09-24
-    * Copyright:     (C) 2019 SIGMOÉ(R),Géofoncier(R)
+    * Last release:  2021-03-12
+    * Copyright:     (C) 2019,2020,2021 GEOFONCIER(R), SIGMOÉ(R)
     * Email:         em at sigmoe.fr
-    * License:       Proprietary license
+    * License:       GPL license 
     ***************************************************************************
 """
 from qgis.PyQt.QtCore import QVariant
 from qgis.core import QgsField
+from qgis.PyQt.QtGui import QColor
 
 # Interface messages
 mnu_title_txt = "Géofoncier Éditeur RFU"
@@ -143,7 +144,43 @@ multi_doss_canceled_msg = [ "Envoi annulé",
 reinit_msg =[   "Réinitialisation de l'espace de travail",
                 "La réinitialisation de l'espace de travail provoque l'effacement de tous les objets nouvellement créés dans la zone de travail.<br/><b>Cette action est irréversible.</b><br/>Êtes-vous sûr de vouloir réinitialiser l'espace de travail ?"
                 ]
+                
+cutlim_notoldlim_msg = [ "Mauvais choix de limite",
+                            "Vous n'avez pas choisi une limite déjà existante dans le RFU !\nVeuillez choisir une limite RFU déjà existante."
+                            ]
+                            
+cutlim_nolim_msg = [ "Pas de limite sélectionnée",
+                            "Aucune limite RFU n'est sélectionnée !\nVeuillez sélectionner une limite RFU existante (étape 1) avant de valider la création du découpage."
+                            ]
 
+cutlim_toomuchlim_msg = [ "Trop de limites RFU sélectionnées",
+                            "Vous avez sélectionné plusieurs limites RFU à découper !\nUne seule limite peut être sélectionnée pour le découpage !\nVeuillez resélectionner une seule limite RFU."
+                            ]
+
+cutlim_nonwvtx_msg = [ "Aucun sommet nouveau sélectionné",
+                            "Vous n'avez sélectionné aucun sommet nouveau !\nVeuillez sélectionner au moins un sommet nouveau (étape 2) avant de valider la création du découpage."
+                            ]
+                            
+cutlim_vtxout_msg = [ "Sommet nouveau hors ligne",
+                            "Le sommet {0:d} se situe au-delà des extrémités de la limites RFU !\nCe sommet ne sera pas pris en compte."
+                            ]
+                            
+cutlim_vtxdist_msg = ["Confirmation modification limite RFU",
+                            "Distance des sommets nouveaux à la limite ancienne:<br/>{0:s}<br/><b>Confirmez-vous la suppression de la limite RFU existante et son remplacement par une nouvelle limite passant par ces sommets nouveaux ?</b>"
+                            ]
+                            
+cutlim_end_msg = ["Modification limite RFU terminée",
+                    "Ancienne limite RFU supprimée et nouvelles limites passant par les sommets nouveaux créées !"
+                    ]
+                    
+cutlim_noncre_msg = [ "Aucun sommet nouveau",
+                            "Aucun sommet nouveau ne peut être pris en compte !\nVeuillez sélectionner au moins un sommet nouveau situté proche de la limite (étape 2) avant de valider la création du découpage."
+                            ]
+                            
+msg_dist = "Point n°{0:d}: distance à la limite RFU = {1:.2f}m<br/>"
+
+edge_crea_txt = ["Création d'une nouvelle limite", "Cliquez sur le sommet de départ, puis sur le sommet d'arrivée, modifiez ensuite les données (en bas à gauche), et validez la création en cliquant sur [OK]"]
+                            
 # Comment default text
 cmt_dft = "Versement depuis QGIS - Dossier %s"
 
@@ -151,6 +188,8 @@ cmt_dft = "Versement depuis QGIS - Dossier %s"
 no_blk = "Pas de bloc associé"
 # Message for all blocks DXF Import)
 all_blks = "Tous les blocs du calque"
+# Message for DXF Import limits choice
+no_lyr = "Pas de calque associé"
 # LineEdit placeholder text for new nature
 le_phtxt = "Nature personnalisée"
 
@@ -189,9 +228,11 @@ captbl_table_hd = [
                     [0, "Système géodésique"],
                     [1, "Classes de précision de rattachement"], 
                     [2, "Représentations planes acceptées"], 
-                    [3, "Natures de sommet conseillées"], 
-                    [4, "Géomètres-experts modificateurs"], 
-                    [5, "Tolérance points identiques"]
+                    [3, "Typologies de nature de sommet"], 
+                    [4, "Natures de sommet conseillées"], 
+                    [5, "Typologies de nature de limites"], 
+                    [6, "Géomètres-experts modificateurs"], 
+                    [7, "Tolérance points identiques"]
                   ]
 
 # List of headers of the pt plots table (in the desired order displayed)
@@ -218,11 +259,15 @@ st_true_bkgcol = '#b6ffa7'
 st_false_bkgcol = '#ffa7a7'
 
                     
+
+# Modified in v2.1 <<
 # List of attributes for vertex and edge layers
 vtx_atts = [
                 QgsField(r"@id_noeud", QVariant.LongLong),
                 QgsField(r"@version", QVariant.Int),
                 QgsField(r"som_ge_createur", QVariant.String),
+                QgsField(r"som_delimitation_publique", QVariant.String),
+                QgsField(r"som_typologie_nature", QVariant.String),
                 QgsField(r"som_nature", QVariant.String),
                 QgsField(r"som_precision_rattachement", QVariant.Int),
                 QgsField(r"som_coord_est", QVariant.Double),
@@ -235,8 +280,25 @@ vtx_atts = [
 edge_atts = [
                 QgsField(r"@id_arc", QVariant.LongLong),
                 QgsField(r"@version", QVariant.Int),
-                QgsField(r"lim_ge_createur", QVariant.String)
+                QgsField(r"lim_ge_createur", QVariant.String),
+                QgsField(r"lim_delimitation_publique", QVariant.String),
+                QgsField(r"lim_typologie_nature", QVariant.String)                             
             ]
+            
+elimlyr_atts = [
+                QgsField(r"pb_type", QVariant.String),
+                QgsField(r"lim_ge_createur", QVariant.String),
+                QgsField(r"lim_delimitation_publique", QVariant.String),
+                QgsField(r"lim_typologie_nature", QVariant.String)                             
+                ]
+            
+# List of lim_typologie_nature hardcoded
+lim_typo_nat_vals = ['Limite privée', 'Limite naturelle']
+
+# default som_typologie_nature
+dft_som_typo_nat = 'Borne'
+
+# >>
             
 # List of attributes to transfer in case of new vertex to plot
 tr_toplot_atts = [
@@ -258,3 +320,40 @@ dlg_show_ptplots_sw = 1000
 dlg_show_ptplots_sh = 400
 dlg_transfo_pt_to_plots_sw = 973
 dlg_transfo_pt_to_plots_sh = 400
+dlg_cut_oldlimit_sw = 973
+dlg_cut_oldlimit_sh = 400
+
+# For debug
+pc_cor = {  '%20': ' ',
+            '%21': '!',
+            '%22': '"',
+            '%23': '#',
+            '%24': '$',
+            '%25': '%',
+            '%26': '&',
+            '%27': '\'',
+            '%28': '(',
+            '%29': ')',
+            '%2A': '*',
+            '%2B': '+',
+            '%2C': ',',
+            '%2D': '-',
+            '%2E': '.',
+            '%2F': '/',
+            '%3A': ':',
+            '%3B': ';',
+            '%3C': '<',
+            '%3D': '=',
+            '%3E': '>',
+            '%3F': '?',
+            '%40': '@',
+            '%5B': '[',
+            '%5C': '\\',
+            '%5D': ']',
+            '%5E': ']',
+            '%5F': '_',
+            '%7B': '{',
+            '%7C': '|',
+            '%7D': '}',
+            '%7E': '~'            
+        }

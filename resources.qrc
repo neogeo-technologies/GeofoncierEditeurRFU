@@ -22,5 +22,5 @@
         <file alias="ul">resources/ul.png</file>
         <file alias="underline">resources/underline.png</file>
         <file alias="btn_resize">resources/btn_resize.png</file>
-    </qresource>
+    </qresource> 
 </RCC>

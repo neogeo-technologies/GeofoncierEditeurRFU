@@ -7,10 +7,10 @@
     * Module:        Global fnc
     * Description:   Global functions
     * First release: 2018-06-01
-    * Last release:  2019-08-19
-    * Copyright:     (C) 2019 SIGMOÉ(R),Géofoncier(R)
+    * Last release:  2021-03-12
+    * Copyright:     (C) 2019,2020,2021 GEOFONCIER(R), SIGMOÉ(R)
     * Email:         em at sigmoe.fr
-    * License:       Proprietary license
+    * License:       GPL license 
     ***************************************************************************
 """
 
@@ -31,9 +31,11 @@ import codecs
 
 from .global_vars import * 
 
+
 # Find distance between 2 QgsPoint
 def dist_2_pts(pt1, pt2):
     return math.sqrt( (pt2.x() - pt1.x())**2 + (pt2.y() - pt1.y())**2 )
+
 
 # Find if 2 points are close (to consider it's the same point)
 def find_near(pt1, pt2, tol):
@@ -43,6 +45,7 @@ def find_near(pt1, pt2, tol):
     else :
         return [False, dist]
 
+
 # Create 2 transformations to obtain WGS84 or CC coordinates (project CRS)
 def crs_trans_params(canvas, project):
     crs_cur = canvas.mapSettings().destinationCrs()
@@ -50,6 +53,7 @@ def crs_trans_params(canvas, project):
     coords_trf_wgs = QgsCoordinateTransform(crs_cur, crs_wgs, project)
     coords_trf_cc = QgsCoordinateTransform(crs_wgs, crs_cur, project)
     return coords_trf_wgs, coords_trf_cc
+    
     
 # Create the layer that will be used to store the eliminated lines
 def create_elimlyr(canvas):
@@ -80,11 +84,12 @@ def create_elimlyr(canvas):
             edge_root_rule.appendChild(rule)
         edge_root_rule.removeChildAt(0)
     elim_lyr.setRenderer(rend_elimedge)
-    p_elimedge.addAttributes([QgsField(r"pb_type", QVariant.String)])
+    p_elimedge.addAttributes(elimlyr_atts)
     elim_lyr.updateFields()
     # Refresh the canvas
     elim_lyr.triggerRepaint()
     return elim_lyr
+    
     
 # Define the params of a message box (with title, text, informativetext)
 def mbox_with_parent_params(wdg_parent, title, text, informative_text):
@@ -97,6 +102,7 @@ def mbox_with_parent_params(wdg_parent, title, text, informative_text):
     mbox.setIcon(QMessageBox.Warning)
     return mbox
     
+    
 # Define the params of a message box (with title, text, informativetext)
 def mbox_w_params(title, text, informative_text):
     mbox = QMessageBox()
@@ -108,13 +114,14 @@ def mbox_w_params(title, text, informative_text):
     mbox.setIcon(QMessageBox.Warning)
     return mbox
 
+
 # Check if a limit (line) intersects one of the existing limits 
 # (in original_l_edge layer). If yes, put this limit
 # in the elimedge_lname layer and return False
 # If imported = False: use others messages and doesn't create
-# elimibated lines
+# eliminated lines
 # Also check if two lines are equals
-def check_limit_cross(line, original_l_edge, canvas, imported):
+def check_limit_cross(line, original_l_edge, ge_createur, delim_pub, lim_typo_nat, canvas, imported):
     to_create = True
     first_creation = True
     # Check intersection of lines
@@ -181,11 +188,12 @@ def check_limit_cross(line, original_l_edge, canvas, imported):
                 elimedge = QgsFeature()
                 elimedge.setGeometry(line)
                 elimedge.setFields(l_elimedge.fields())
-                elimedge.setAttributes([cross_case])
+                elimedge.setAttributes([cross_case, ge_createur, delim_pub, lim_typo_nat])
                 # Add feature to the layer
                 l_elimedge.addFeature(elimedge)
                 first_creation = False
     return to_create
+
 
 # Check if a vertex feature is out of a bbox feature
 def check_vtx_outofbbox(vtx_ft, bbox_ft):
@@ -196,6 +204,7 @@ def check_vtx_outofbbox(vtx_ft, bbox_ft):
     if vtx_ft_g.disjoint(bbox_ft_g):
         to_export = False
     return to_export
+
 
 # Check if a edge fetaure is out of a bbox feature or is crossing a bbox feature  
 def check_edge_outofbbox(edge_ft, bbox_ft):
@@ -209,7 +218,8 @@ def check_edge_outofbbox(edge_ft, bbox_ft):
     if edge_ft_g.crosses(bbox_ft_g):
         to_export = False
     return to_export
-    
+
+
 # Create the layer that will contains the vertices out of the bbox when exporting
 def create_vtx_outofbbox_lyr():
     vtx_outofbbox_lyr = QgsVectorLayer(r"Point?crs=epsg:4326&index=yes",
@@ -228,7 +238,8 @@ def create_vtx_outofbbox_lyr():
     # Refresh the canvas
     vtx_outofbbox_lyr.triggerRepaint()
     return vtx_outofbbox_lyr
-    
+ 
+ 
 # Create the layer that will contains the edges out of the bbox when exporting
 def create_edge_outofbbox_lyr():
     edge_outofbbox_lyr = QgsVectorLayer(r"LineString?crs=epsg:4326&index=yes",
@@ -259,7 +270,7 @@ def create_edge_outofbbox_lyr():
 #               attribute value = sublist[idx_val]
 #               attribute description = sublist[idx_desc]
 def map_predefined_vals_to_fld(lyr, fld_name, val_lst, *idx):    
-    if len(idx) ==2:
+    if len(idx) == 2:
         idx_val = idx[0]
         idx_desc= idx[1]
     fld_idx = lyr.fields().indexFromName(fld_name)
@@ -279,6 +290,7 @@ def map_predefined_vals_to_fld(lyr, fld_name, val_lst, *idx):
     except:
         return False
 
+
 # Check if 2 points are equals
 def check_no_dblpt(pt1, pt2):
     to_create = True
@@ -286,10 +298,12 @@ def check_no_dblpt(pt1, pt2):
         to_create = False
     return to_create
 
+
 # Round a QgsPointXY to cm (2 digits after the point)
 def round_pt_2_cm(qgs_pt):
     return QgsPointXY(round(qgs_pt.x(), 2), round(qgs_pt.y(), 2))
-    
+
+
 # Check if 2 points are identical
 # digit = number of digit taken into account for the comparison
 def check_identical_pts(qgs_pt1, qgs_pt2, digit):
@@ -298,7 +312,8 @@ def check_identical_pts(qgs_pt1, qgs_pt2, digit):
         round(qgs_pt1.y(), digit) == round(qgs_pt2.y(), digit):
         ret = True
     return ret
-    
+
+
 # Check if 2 lines (2 points lines) are identical
 # digit = number of digit taken into account for the comparison
 def check_identical_lines(qgs_line1, qgs_line2, digit):
@@ -313,7 +328,8 @@ def check_identical_lines(qgs_line1, qgs_line2, digit):
         round(qgs_line1[-1].y(), digit) == round(qgs_line2[0].y(), digit)):
         ret = True
     return ret
-    
+
+
 # Find the max length among several lists
 def find_maxlength(self, *val_lists):
     ret_len = 0
@@ -323,7 +339,8 @@ def find_maxlength(self, *val_lists):
                 if len(val_list) > ret_len:
                     ret_len = len(val_list)
     return ret_len
-    
+
+
 # Check if a layer (by its name) exists
 def layer_exists(layer_name, prj_instance):
     exists = False
@@ -331,6 +348,7 @@ def layer_exists(layer_name, prj_instance):
     if len(layer_lst) > 0:
         exists = True
     return exists
+
 
 # Return a list of dictionnaries containing all the attribute values of a specific feature
 # The specific feature is given by the value (find_val) of one attribute (in_att)
@@ -355,6 +373,7 @@ def getmulti_fields_values_from_one_value(lyr, find_val, in_att, cond_val, cond_
                 obj_lst.append(att_val_dic)
     return obj_lst
 
+
 # Retrun a list of features respecting the condition cond_fld = cond_val
 def feats_by_cond(lyr, cond_fld, cond_val):
     ft_lst = []
@@ -363,6 +382,7 @@ def feats_by_cond(lyr, cond_fld, cond_val):
             ft_lst.append(obj)
     return ft_lst
 
+
 # Returns a dictionnary containing all the attribute values of a specific feature
 def get_fields_values_from_feat(lyr, feat):
     att_val_dic = {}
@@ -370,25 +390,69 @@ def get_fields_values_from_feat(lyr, feat):
     for att in atts:
         att_val_dic[att] = feat[att]
     return att_val_dic
-    
+
+
 # Return sorted list of fields of a layer instance
 def get_layer_fields(layer):
     fld_lst = []
     for field in layer.fields():
         fld_lst.append(field.name())
     return sorted(fld_lst, key=locale.strxfrm)
+
+
+# Transform a checkbox state in True/False string value
+def chkbox_to_truefalse(chkbox):
+    if chkbox.isChecked():
+        return 'True'
+    else:
+        return 'False'
+
+
+# Create a new feature in a specific layer
+# lyr = layer
+# geom = QgsGeometry
+# atts_val = list of attributes values
+def create_nw_feat(lyr, geom, atts_val):
+    nw_feat = QgsFeature()
+    nw_feat.setGeometry(geom)
+    nw_feat.setFields(lyr.fields())
+    nw_feat.setAttributes(atts_val)
+    lyr.addFeature(nw_feat)
+    return nw_feat
+
+
+######################################################
+# FOR DEBUGGING
+######################################################
        
 # Show the debug messages
 # Usage: 
 # debug_msg('DEBUG', "var1: %s, - var2: %s" , (str(var1), str(var2)))
+# debug_msg('DEBUG', "var1: %s" , (str(var1)))
 def debug_msg(debug_on_off, msg_str, msg_list_var):
     if debug_on_off == 'DEBUG':
         msg = msg_str % msg_list_var
         QgsMessageLog.logMessage(msg, 'Sgm debug')
-        
-# For debugging:
+
+
 # Export the urlopen response to a text file
 def urlresp_to_file(resp_read):
     with open(r"C:\DummyDir\_QGIS-RFU_fic_resp.txt", 'a') as fic_resp:
         fic_resp.write(resp_read.decode('utf-8'))
+        # fic_resp.write(str(resp_read))
+
+
+# Export the put data to a file
+def putdata_to_file(data):
+    with open(r"C:\DummyDir\_QGIS-RFU_putdata.txt", 'a') as fic_resp:
+        fic_resp.write(data.decode('utf-8'))
+        # fic_resp.write(str(resp_read))
+
+
+# Change pourcent characters
+def unpourcent_char(data):
+    for old_c, nw_c in pc_cor.items():
+        data = data.replace(old_c, nw_c)
+        debug_msg('DEBUG', r"new-data: %s" , (data))
+    return data
         

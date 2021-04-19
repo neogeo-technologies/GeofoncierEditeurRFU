@@ -8,10 +8,10 @@
     * Description:   Define a class that provides to the plugin
     *                GeofoncierEditeurRFU the RFU editor
     * First release: 2015
-    * Last release:  2019-09-24
-    * Copyright:     (C) 2015 Géofoncier(R), (C) 2019 SIGMOÉ(R),Géofoncier(R)
+    * Last release:  2021-03-12
+    * Copyright:     (C) 2019,2020,2021 GEOFONCIER(R), SIGMOÉ(R)
     * Email:         em at sigmoe.fr
-    * License:       Proprietary license
+    * License:       GPL license 
     ***************************************************************************
 """
 
@@ -37,6 +37,7 @@ from .global_vars import *
 from .global_fnc import *
 from .import_dxf2rfu import ImportDxf2Rfu
 from .import_csvrfu import ImportCsvRfu
+from .cut_oldlimit import CutOldLimit
 from .show_capabilities import ShowCapabilities
 from .show_ptplots import ShowPtPlots
 from .transfo_pttoplot import TransfoPtToPlot
@@ -62,6 +63,7 @@ class EditorRFUGeofoncier:
         self.dxf2rfu_import = None
         self.csv2rfu_import = None
         self.show_ptplots = None
+
 
     def unload(self):
 
@@ -106,7 +108,7 @@ class EditorRFUGeofoncier:
 
         self.action_vtx_creator = QAction(
             QIcon(r":/resources/rfu_btn_add_vtx"),
-            "Ajouter un noeud RFU", self.iface.mainWindow())
+            "Ajouter un sommet RFU", self.iface.mainWindow())
 
         self.action_edge_creator = QAction(
             QIcon(r":/resources/rfu_btn_add_edge"),
@@ -120,6 +122,10 @@ class EditorRFUGeofoncier:
         self.action_import_dxf2rfu = QAction(
             QIcon(r":/resources/rfu_btn_import_dxf2rfu"),
             "Importer un fichier DXF filtré pour le RFU", self.iface.mainWindow())
+            
+        self.action_cut_oldlimit = QAction(
+            QIcon(r":/resources/rfu_btn_cut_oldlimit"),
+            "Couper une limite existante par un ou plusieurs sommets nouveaux", self.iface.mainWindow())
             
         self.action_transfo_pt_to_plot = QAction(
             QIcon(r":/resources/rfu_btn_pt_to_plot"),
@@ -148,6 +154,7 @@ class EditorRFUGeofoncier:
                                  self.action_edge_creator,
                                  self.action_import_csv2rfu,
                                  self.action_import_dxf2rfu,
+                                 self.action_cut_oldlimit,
                                  self.action_transfo_pt_to_plot,
                                  self.action_del_ptplot,
                                  self.action_show_ptplots,
@@ -160,6 +167,7 @@ class EditorRFUGeofoncier:
                                  self.action_edge_creator,
                                  self.action_import_csv2rfu,
                                  self.action_import_dxf2rfu,
+                                 self.action_cut_oldlimit,
                                  self.action_transfo_pt_to_plot,
                                  self.action_del_ptplot,
                                  self.action_show_ptplots,
@@ -175,12 +183,14 @@ class EditorRFUGeofoncier:
         self.action_edge_creator.triggered[bool].connect(self.tool_edge_creator_on_triggered)
         self.action_import_csv2rfu.triggered.connect(self.tool_import_csvrfu)
         self.action_import_dxf2rfu.triggered.connect(self.tool_import_dxf2rfu)
+        self.action_cut_oldlimit.triggered.connect(self.tool_cut_oldlimit)
         self.action_transfo_pt_to_plot.triggered.connect(self.tool_transfo_pt_to_plot)
         self.action_del_ptplot.triggered.connect(partial(self.tool_select_pt_to_plot, "del"))
         self.action_show_ptplots.triggered.connect(partial(self.tool_select_pt_to_plot, "info"))
         self.action_show_capabilities.triggered.connect(self.tool_show_capabilities)
         # Initialize current layer to None (See switch_editing())..
         self.current_layer = None
+        
         
     # On iface Signals
     # ================
@@ -189,13 +199,14 @@ class EditorRFUGeofoncier:
 
         layer = self.canvas.currentLayer()
         
-        if not layer:
+        if not layer or not self.rfu:
             return
 
         if layer.isEditable() and layer == self.rfu.l_vertex:
             self.switch_editing(layer)
         elif layer.isEditable() and layer == self.rfu.l_edge:
             self.switch_editing(layer)
+
 
     def switch_editing(self, layer):
         
@@ -214,25 +225,31 @@ class EditorRFUGeofoncier:
         layer.attributeValueChanged.connect(self.on_attribute_value_changed)
         layer.geometryChanged.connect(self.on_geometry_changed)  
 
+
     def on_committed_features_added(self, layer_id, features):
         self.rfu.add_features(layer_id, features)
 
+
     def on_committed_features_removed(self, layer_id, ft_id_list):
         self.rfu.remove_features(layer_id, ft_id_list)
+
 
     def on_geometry_changed(self, fid, geom):
         feature = tools.get_feature_by_id(self.current_layer, fid)
         self.rfu.modify_feature(self.current_layer.id(), feature)
 
+
     def on_attribute_value_changed(self, fid, field_idx, value):
         feature = tools.get_feature_by_id(self.current_layer, fid)
         self.rfu.modify_feature(self.current_layer.id(), feature)
+
 
     # On map layer registry signals
     # =============================
 
     def on_layers_removed(self, layers):
         self.current_layer = None
+
 
     # Login/logout
     # ============
@@ -254,6 +271,7 @@ class EditorRFUGeofoncier:
         self.iface.messageBar().pushMessage(
                 "Géofoncier", "Bonjour %s %s." % (self.conn.prenom, self.conn.nom),
                 Qgis.Info, duration=6)
+
 
     def close_connection(self):
 
@@ -283,6 +301,7 @@ class EditorRFUGeofoncier:
 
         self.iface.messageBar().pushMessage("Géofoncier", "À bientôt.", Qgis.Info, duration=6)
 
+
     # On action signals
     # =================
 
@@ -292,9 +311,12 @@ class EditorRFUGeofoncier:
             self.action_login.setChecked(False)
         else:
             self.action_login.setChecked(True)
+            
+
     def dlg_login_on_opened(self):
 
         self.action_login.setChecked(True)
+
 
     def tool_login_on_triggered(self, checked):
 
@@ -321,9 +343,11 @@ class EditorRFUGeofoncier:
         if not checked:
             self.rfu.hide()
 
+
     def rfu_on_closed(self):
 
         self.action_connector.setChecked(False)
+
 
     def rfu_on_uploaded(self):
 
@@ -334,6 +358,7 @@ class EditorRFUGeofoncier:
         self.iface.setActiveLayer(self.rfu.l_edge)
         self.iface.setActiveLayer(self.rfu.l_vertex)
             
+            
     def rfu_on_downloaded(self):
 
         # Allow creation and import
@@ -342,9 +367,11 @@ class EditorRFUGeofoncier:
         self.iface.setActiveLayer(self.rfu.l_edge)
         self.iface.setActiveLayer(self.rfu.l_vertex)
         
+        
     def rfu_on_reset(self):
         # Allow creation and import
         self.allow_creation(False)
+
 
     def tool_vtx_creator_on_triggered(self):
         # Set the layer l_vertex current
@@ -366,14 +393,15 @@ class EditorRFUGeofoncier:
                             precision_class=self.rfu.precision_class,
                             ellips_acronym=self.rfu.ellips_acronym,
                             selected_ellips_acronym=self.rfu.selected_ellips_acronym,
-                            nature=self.rfu.nature,
+                            typo_nature_som=self.rfu.typo_nature_som,
                             auth_creator=self.rfu.auth_creator,
                             tol_spt = self.rfu.tol_same_pt)
-
+        
         dlg_vtx_creator.show()
 
         if not dlg_vtx_creator.exec_():
             return None
+
 
     def tool_edge_creator_on_triggered(self, checked=False):
         if not checked:
@@ -390,9 +418,11 @@ class EditorRFUGeofoncier:
                 self.rfu.l_edge.startEditing()
             
             self.edge_creator = EdgeCreator(
+                                    self.iface,
                                     self.canvas,
                                     self.rfu.layers[0],
                                     self.rfu.layers[1],
+                                    typo_nature_lim=self.rfu.typo_nature_lim,
                                     user=self.rfu.conn.user,
                                     auth_creator=self.rfu.auth_creator)
 
@@ -400,11 +430,13 @@ class EditorRFUGeofoncier:
             self.edge_creator.destroyed.connect(self.on_edge_creator_destroyed)
             self.iface.addDockWidget(Qt.LeftDockWidgetArea, self.edge_creator)
 
+
     def on_edge_creator_destroyed(self):
 
         self.edge_creator = None
         return self.action_edge_creator.setChecked(False)
-    
+
+
     # Launch the import csv tool
     def tool_import_csvrfu(self):
         if self.rfu :
@@ -419,9 +451,10 @@ class EditorRFUGeofoncier:
                                     precision_class=self.rfu.precision_class,
                                     ellips_acronym=self.rfu.ellips_acronym,
                                     selected_ellips_acronym=self.rfu.selected_ellips_acronym,
-                                    nature=self.rfu.nature,
+                                    typo_nature_som=self.rfu.typo_nature_som,
+                                    typo_nature_lim=self.rfu.typo_nature_lim,
                                     tol_spt=self.rfu.tol_same_pt)
-            self.csv2rfu_import.importFile()
+            self.csv2rfu_import.import_file()
         else :
             QMessageBox.information(
                                     self.iface.mainWindow(), 
@@ -443,15 +476,40 @@ class EditorRFUGeofoncier:
                                     precision_class=self.rfu.precision_class,
                                     ellips_acronym=self.rfu.ellips_acronym,
                                     selected_ellips_acronym=self.rfu.selected_ellips_acronym,
-                                    nature=self.rfu.nature,
+                                    typo_nature_som=self.rfu.typo_nature_som,
+                                    typo_nature_lim=self.rfu.typo_nature_lim,
                                     tol_spt=self.rfu.tol_same_pt)
-            self.dxf2rfu_import.importFile()
+            self.dxf2rfu_import.import_file()
         else :
             QMessageBox.information(
                                     self.iface.mainWindow(), 
                                     tl_imp_canc, 
                                     txt_dxfimp_norfu_canc)
-                                    
+    
+
+    # Cut an old limit at the point of a new vertex
+    def tool_cut_oldlimit(self):
+        if self.rfu and self.rfu.layers[0]:
+            # Set the layer l_vertex current
+            self.iface.setActiveLayer(self.rfu.l_vertex)
+            self.project.layerTreeRoot().findLayer(self.rfu.l_vertex.id()).setItemVisibilityChecked(True)
+            self.canvas.refresh()
+            # Check the editable mode
+            if not self.rfu.l_vertex.isEditable():
+                self.rfu.l_vertex.startEditing()
+            self.tr_cut_oldlimit = CutOldLimit(
+                                    self.canvas,
+                                    self.project,
+                                    self.rfu.layers[0],
+                                    self.rfu.layers[1],)
+            # # Modal window
+            # self.tr_pt_to_plot.setWindowModality(Qt.ApplicationModal)
+            self.tr_cut_oldlimit.show()
+        else :
+            QMessageBox.information(
+                                    self.iface.mainWindow(), 
+                                    tr_pttoplot_imp_msg[0], 
+                                    tr_pttoplot_imp_msg[1])    
                             
                                     
     # Management of the new vertices to transform into plots
@@ -477,6 +535,7 @@ class EditorRFUGeofoncier:
                                     self.iface.mainWindow(), 
                                     tr_pttoplot_imp_msg[0], 
                                     tr_pttoplot_imp_msg[1])
+                                    
                                       
     # Let the user choose a point to show the point plots
     def tool_select_pt_to_plot(self, type_fnc):
@@ -496,6 +555,7 @@ class EditorRFUGeofoncier:
             self.identify_pttoplot.setCursor(QCursor(Qt.WhatsThisCursor))
             self.identify_pttoplot.featureIdentified.connect(self.pt_to_plot_identified)
             self.canvas.setMapTool(self.identify_pttoplot)
+        
         
     # Prepare and show the point plots dlg
     def pt_to_plot_identified(self, pt_feat):
@@ -539,6 +599,7 @@ class EditorRFUGeofoncier:
         else:
             QMessageBox.warning(self.iface.mainWindow(), plot_notrfusel_msg[0], plot_notrfusel_msg[1])
 
+
     # Lets appear the show capabilities dlg
     def tool_show_capabilities(self):
         resp_mycap = None
@@ -561,6 +622,8 @@ class EditorRFUGeofoncier:
             if self.rfu and self.rfu.zone:
                 resp = self.conn.get_capabilities(self.rfu.zone)
                 resp_cap = resp.read()
+                # DEBUG: Export response as a text file
+                # urlresp_to_file(resp_ap)
                 if resp.code != 200:
                     # Catch the error specified by the API
                     tree = ElementTree.fromstring(resp_cap)
@@ -586,6 +649,7 @@ class EditorRFUGeofoncier:
         self.action_edge_creator.setEnabled(state)
         self.action_import_csv2rfu.setEnabled(state)
         self.action_import_dxf2rfu.setEnabled(state)
+        self.action_cut_oldlimit.setEnabled(state)
         self.action_transfo_pt_to_plot.setEnabled(state)
         self.action_del_ptplot.setEnabled(state)
         self.action_show_ptplots.setEnabled(state)

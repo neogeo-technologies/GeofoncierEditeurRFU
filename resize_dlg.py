@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 
 """
     ***************************************************************************
@@ -9,10 +9,10 @@
     *                GeofoncierEditeurRFU method to automatically resize 
     *                a dialog box
     * First release: 2019-07-26
-    * Last release:  2019-08-19
-    * Copyright:     (C) 2019 SIGMOÉ(R),Géofoncier(R)
+    * Last release:  2021-03-12
+    * Copyright:     (C) 2019,2020,2021 GEOFONCIER(R), SIGMOÉ(R)
     * Email:         em at sigmoe.fr
-    * License:       Proprietary license
+    * License:       GPL license 
     ***************************************************************************
 """
 
@@ -41,6 +41,9 @@ class ResizeDlg:
         if self.dlg_param == "dlg_transfo_pt_to_plots":
             self.sw = dlg_transfo_pt_to_plots_sw
             self.sh = dlg_transfo_pt_to_plots_sh
+        if self.dlg_param == "dlg_cut_oldlimit":
+            self.sw = dlg_cut_oldlimit_sw
+            self.sh = dlg_cut_oldlimit_sh
         self.wtbv = self.sw
         self.htbv = self.sh
     
@@ -81,6 +84,7 @@ class ResizeDlg:
             params["dlg_show_capabilities"] = json_dlg_resize[r"dlg_show_capabilities"]
             params["dlg_show_ptplots"] = json_dlg_resize[r"dlg_show_ptplots"]
             params["dlg_transfo_pt_to_plots"] = json_dlg_resize[r"dlg_transfo_pt_to_plots"]
+            params["dlg_cut_oldlimit"] = json_dlg_resize[r"dlg_cut_oldlimit"]
             self.resize_params = params
         return self.resize_params
             

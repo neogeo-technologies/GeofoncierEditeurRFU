@@ -9,10 +9,10 @@
     *                GeofoncierEditeurRFU the possibility to show the 
     *                list of plots associated to  specific vertex
     * First release: 2019-07-25
-    * Last release:  2019-08-19
-    * Copyright:     (C) 2019 SIGMOÉ(R),Géofoncier(R)
+    * Last release:  2021-03-12
+    * Copyright:     (C) 2019,2020,2021 GEOFONCIER(R), SIGMOÉ(R)
     * Email:         em at sigmoe.fr
-    * License:       Proprietary license
+    * License:       GPL license 
     ***************************************************************************
 """
 
@@ -106,7 +106,7 @@ class TransfoPtToPlot(QDialog, gui_dlg_transfo_pttoplot):
             self.identify_rfuvtxfar_vtx.setCursor(QCursor(Qt.PointingHandCursor))
             self.identify_rfuvtxfar_vtx.featureIdentified.connect(partial(self.rfu_vtx_identified, "far"))
             self.canvas.setMapTool(self.identify_rfuvtxfar_vtx)
-        # Message if no line selected in the tablview
+        # Message if no line selected in the tableview
         else:
             QMessageBox.warning(self, tr_vtxplt_sel_nonwvtxsel_msg[0], tr_vtxplt_sel_nonwvtxsel_msg[1])  
 
@@ -225,8 +225,7 @@ class TransfoPtToPlot(QDialog, gui_dlg_transfo_pttoplot):
                         if old_edge_ft.id() != edge_ft.id() and \
                             check_identical_lines(old_edge_ft.geometry().asPolyline(), nw_line_g.asPolyline(), 12):
                             self.l_edge.deleteFeature(edge_ft.id())
-                    
-        
+    
     
     # Let the user valid the new vertex
     def nwvtx_valid(self):       

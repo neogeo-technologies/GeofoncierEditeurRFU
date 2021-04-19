@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 
 """
     ***************************************************************************
@@ -8,10 +8,10 @@
     * Description:   Define a class that provides to the plugin
     *                GeofoncierEditeurRFU the Vertex Creator
     * First release: 2015
-    * Last release:  2019-08-19
-    * Copyright:     (C) 2015 Géofoncier(R), (C) 2019 SIGMOÉ(R),Géofoncier(R)
+    * Last release:  2021-03-12
+    * Copyright:     (C) 2019,2020,2021 GEOFONCIER(R), SIGMOÉ(R)
     * Email:         em at sigmoe.fr
-    * License:       Proprietary license
+    * License:       GPL license 
     ***************************************************************************
 """
 
@@ -38,7 +38,7 @@ class VertexCreator(QDialog, gui_dlg_vertex_creator):
     def __init__(self, canvas, project, l_vertex, parent=None, user=None,
                  precision_class=[], ellips_acronym=[],
                  selected_ellips_acronym = None,
-                 nature=[], auth_creator=[], tol_spt=0.0):
+                 typo_nature_som=[], auth_creator=[], tol_spt=0.0):
 
         super(VertexCreator, self).__init__(parent)
         self.setupUi(self)
@@ -50,60 +50,82 @@ class VertexCreator(QDialog, gui_dlg_vertex_creator):
         self.precision_class = precision_class
         self.ellips_acronym = ellips_acronym
         self.selected_ellips_acronym = selected_ellips_acronym
-        self.nature = nature
+        self.typo_nature_som = typo_nature_som
         self.auth_creator = auth_creator
         self.tol_spt = tol_spt
 
-        self.xLineEdit.clear()
-        self.yLineEdit.clear()
+        self.coordx_led.clear()
+        self.coordy_led.clear()
 
         # fix_print_with_import
         print(ellips_acronym)
 
         for i, e in enumerate(self.ellips_acronym):
-            self.ellipsComboBox.addItem(e[2])
+            self.ellips_cmb.addItem(e[2])
             if not selected_ellips_acronym:
                 continue
             if selected_ellips_acronym == e[0]:
-                self.ellipsComboBox.setCurrentIndex(i)
+                self.ellips_cmb.setCurrentIndex(i)
 
         # Attribute: `som_precision_rattachement`
         for e in self.precision_class:
-            self.precisionClassComboBox.addItem(e[1])
+            self.precision_class_cmb.addItem(e[1])
 
-        # Attribute: `som_nature`
-        for e in self.nature:
-            self.natureComboBox.addItem(e)
+        # Attribute: `som_typologie_nature`
+        for e in self.typo_nature_som:
+            self.typo_nat_cmb.addItem(e)
 
         # Attribute: `som_createur`
         for i, e in enumerate(self.auth_creator):
-            self.creatorComboBox.addItem(u"%s (%s)" % (e[1], e[0]))
+            self.createur_cmb.addItem("%s (%s)" % (e[1], e[0]))
             # Set current user as the creator by default..
             if user == e[0]:
-                self.creatorComboBox.setCurrentIndex(i)
-
-        self.buttonBox.accepted.connect(self.on_accepted)
-        self.buttonBox.rejected.connect(self.on_rejected)
+                self.createur_cmb.setCurrentIndex(i)
+        
+        self.valid_btn.accepted.connect(self.on_accepted)
+        self.valid_btn.rejected.connect(self.on_rejected)
+        
+        # Manage nature equals tyop_nature (by default)
+        self.typo_nat_cmb.currentTextChanged.connect(self.nature_completion)
+        # Manage delim_pub_chk text
+        self.delim_pub_chk.stateChanged.connect(self.settext_delim_pub_chk)
+        
+        # Set typo_nature to Borne (by default)
+        self.typo_nat_cmb.setCurrentText(dft_som_typo_nat)
+        
+    # Change the nature to apply the topologie_nature
+    def nature_completion(self):
+        self.nat_led.setText(self.typo_nat_cmb.currentText())
+        
+    # Change the text of the delim_pub checkbox
+    def settext_delim_pub_chk(self):
+        if self.delim_pub_chk.isChecked():
+            self.delim_pub_chk.setText('oui')
+        else:
+            self.delim_pub_chk.setText('non')
 
     def on_accepted(self):
 
         # Check if coordinates are entered..
-        if not self.xLineEdit.text() or not self.yLineEdit.text():
+        if not self.coordx_led.text() or not self.coordy_led.text():
             css = "background-color: rgb(255, 189, 189);"
-            self.xLineEdit.setStyleSheet(css)
-            self.yLineEdit.setStyleSheet(css)
+            self.coordx_led.setStyleSheet(css)
+            self.coordy_led.setStyleSheet(css)
             return None
 
-        # Set attributes..
-        som_ge_createur = self.auth_creator[self.creatorComboBox.currentIndex()][0]
-        som_nature = self.natureComboBox.currentText()
-        som_coord_est = float(self.xLineEdit.text())
-        som_coord_nord = float(self.yLineEdit.text())
+        # Set attributes
+        som_ge_createur = self.auth_creator[self.createur_cmb.currentIndex()][0]
+        som_typologie_nature = self.typo_nat_cmb.currentText()
+        som_nature = self.nat_led.text()
+        som_coord_est = float(self.coordx_led.text())
+        som_coord_nord = float(self.coordy_led.text())
         
-        som_repres_plane = self.ellips_acronym[self.ellipsComboBox.currentIndex()][0]
-        som_prec_rattcht = int(self.precision_class[self.precisionClassComboBox.currentIndex()][0])
+        som_repres_plane = self.ellips_acronym[self.ellips_cmb.currentIndex()][0]
+        som_prec_rattcht = int(self.precision_class[self.precision_class_cmb.currentIndex()][0])
+        # Transform the delim_pub checkbox into the correct value
+        som_delim_pub = chkbox_to_truefalse(self.delim_pub_chk)
 
-        epsg = int(self.ellips_acronym[self.ellipsComboBox.currentIndex()][1])
+        epsg = int(self.ellips_acronym[self.ellips_cmb.currentIndex()][1])
 
         self.original_l_vtx = self.l_vertex
         # Transformations to obtain the WGS84 or the CC coordinates
@@ -140,14 +162,11 @@ class VertexCreator(QDialog, gui_dlg_vertex_creator):
                     m_box.exec_()
         # Creation of the RFU objects in the layers
         if to_create:
-            # Create the feature..
-            vertex = QgsFeature()
-            vertex.setGeometry(QgsGeometry.fromPointXY(nw_pt_wgs))
-            vertex.setFields(self.l_vertex.fields())
-            vertex.setAttributes([NULL, NULL,
-                                  som_ge_createur, som_nature, som_prec_rattcht,
-                                  som_coord_est, som_coord_nord, som_repres_plane, 0.0, "false", id_ptintol])
-            self.l_vertex.addFeature(vertex)
+            # Create the feature
+            create_nw_feat( self.l_vertex, 
+                            QgsGeometry.fromPointXY(nw_pt_wgs), 
+                            [NULL, NULL, som_ge_createur, som_delim_pub, som_typologie_nature, som_nature, som_prec_rattcht, som_coord_est, som_coord_nord, som_repres_plane, 0.0, "false", id_ptintol]
+                            )
             self.canvas.refresh()
         self.accept()
         

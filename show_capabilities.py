@@ -9,10 +9,10 @@
     *                GeofoncierEditeurRFU the possibility to show the 
     *                capabilities C1 and C2
     * First release: 2019-07-24
-    * Last release:  2019-08-19
-    * Copyright:     (C) 2019 SIGMOÉ(R),Géofoncier(R)
+    * Last release:  2021-03-12
+    * Copyright:     (C) 2019,2020,2021 GEOFONCIER(R), SIGMOÉ(R)
     * Email:         em at sigmoe.fr
-    * License:       Proprietary license
+    * License:       GPL license 
     ***************************************************************************
 """
 
@@ -76,7 +76,7 @@ class ShowCapabilities(QDialog, gui_dlg_show_capabilities):
                 raise Exception(err.text)
             cap_vals = []
             # Find the list of values for each capability
-            for i in range(6):
+            for i in range(len(captbl_table_hd)):
                 cap_val = []
                 cap_vals.append(cap_val)
             self.entry = tree.find(r"./systeme_geodesique")
@@ -87,10 +87,14 @@ class ShowCapabilities(QDialog, gui_dlg_show_capabilities):
                 cap_vals[2].append(self.join_att_value(r"som_representation_plane"))
             for self.entry in tree.findall(r"./nature_sommet_conseille/nature"):
                 cap_vals[3].append(self.entry.text)
+            for self.entry in tree.findall(r"./typologie_nature_sommet/nature"):
+                cap_vals[4].append(self.entry.text)
+            for self.entry in tree.findall(r"./typologie_nature_limite/nature"):
+                cap_vals[5].append(self.entry.text)
             for self.entry in tree.findall(r"./som_ge_createur_autorise/som_ge_createur"):
-                cap_vals[4].append(self.join_att_value("num_ge"))            
+                cap_vals[6].append(self.join_att_value("num_ge"))            
             self.entry = tree.find(r"./tolerance")
-            cap_vals[5].append("%s %s" % (self.entry.text, self.entry.attrib[r"unit"]))
+            cap_vals[7].append("%s %s" % (self.entry.text, self.entry.attrib[r"unit"]))
                 
             # Find the number of rows
             nb_rows = find_maxlength(cap_vals[0], cap_vals[1], cap_vals[2], cap_vals[3],

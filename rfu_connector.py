@@ -8,10 +8,10 @@
     * Description:   Define a class that provides to the plugin
     *                GeofoncierEditeurRFU the RFU connector
     * First release: 2015
-    * Last release:  2019-09-24
-    * Copyright:     (C) 2015 Géofoncier(R), (C) 2019 SIGMOÉ(R),Géofoncier(R)
+    * Last release:  2021-03-12
+    * Copyright:     (C) 2019,2020,2021 GEOFONCIER(R), SIGMOÉ(R)
     * Email:         em at sigmoe.fr
-    * License:       Proprietary license
+    * License:       GPL license 
     ***************************************************************************
 """
 
@@ -73,6 +73,8 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.dflt_ellips_acronym = None
         self.selected_ellips_acronym = None
         self.nature = []
+        self.typo_nature_som = []
+        self.typo_nature_lim = []
         self.auth_creator = []
         self.tol_same_pt = 0.0
         self.config = Configuration()
@@ -103,7 +105,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         # Create the WMS layer (from Geofoncier)
         self.wms_urlwithparams = 'contextualWMSLegend=0&crs=EPSG:4326&dpiMode=1&featureCount=10&format=image/png&layers=RFU&styles=default&url=' 
-        self.wms_urlwithparams += self.url_rfu
+        self.wms_urlwithparams += 'https://api.geofoncier.fr' # self.url_rfu
         self.wms_urlwithparams += '/referentielsoge/ogc/wxs/?'
         self.l_wms = QgsRasterLayer(self.wms_urlwithparams, 'Fond de plan RFU WMS', 'wms')
         # Define the contrast filter
@@ -198,8 +200,6 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             else:
                 self.enr_cmt += " - " + cmt_dft % enr_ref_dossier
             
-            debug_msg('DEBUG', "comment: %s" , (str(self.enr_cmt)))
-            
             dossiers = self.conn.dossiersoge_dossiers(self.zone, enr_ref_dossier)
             
             dossiers_read = dossiers.read()
@@ -208,14 +208,9 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             if dossiers.code != 200:
                 return self.abort_action(msg=dossiers_read)
 
-            tree = EltTree.fromstring(dossiers_read)
+            data = json.loads(str(dossiers_read.decode('utf-8')))  
 
-            # Check if exception
-            err = tree.find(r"./erreur")
-            if err:
-                return self.abort_action(msg=err.text)
-
-            nb_dossiers = int(tree.find(r"./dossiers").attrib[r"total"])
+            nb_dossiers = data["count"]
 
             if nb_dossiers == 0:
                 return self.abort_action(msg="Le dossier \'%s\' n'existe pas." % enr_ref_dossier)
@@ -224,12 +219,16 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             # In the case, the difference is made by enr_cab_createur
             if nb_dossiers >= 1:
                 doss_infos = []
-                for doss in tree.findall( r"./dossiers/dossier"):
+                for doss in data["results"]:
                     doss_info = []
-                    doss_info.append(doss.find("enr_cab_createur").text)
-                    doss_info.append(doss.find("enr_ref_dossier").text)
-                    doss_uri = doss.find(r"{http://www.w3.org/2005/Atom}link").attrib[r"href"].split(r"/")[-1][1:]
-                    doss_info.append(doss_uri)
+                    doss_info.append(doss["enr_cab_createur"])
+                    doss_info.append(doss["enr_ref_dossier"])
+                    # doss_uri = doss.find(r"{http://www.w3.org/2005/Atom}link").attrib[r"href"].split(r"/")[-1][1:]
+                    # doss_info.append(doss_uri)
+                    
+                    # id = enr_api_dossier
+                    doss_info.append(doss["id"])
+                    doss_info.append(doss["zone"])
                     doss_infos.append(doss_info)
                 if len(doss_infos) > 1:
                     self.doss_choice = MultiDossChoice(doss_infos)
@@ -239,7 +238,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                     # Continue the process after capturing the dic of values
                     self.doss_choice.send_refapidoss.connect(self.on_uploaded_proc) 
                 else:
-                    self.on_uploaded_proc(doss_uri)
+                    self.on_uploaded_proc(doss_info[2])
         else:
             self.iface.messageBar().clearWidgets()
             
@@ -349,6 +348,7 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                                     bbox.xMaximum(), bbox.yMaximum())
 
         resp_read = resp.read()
+        
         # DEBUG: Export response as a text file
         # urlresp_to_file(resp_read)
         
@@ -403,11 +403,15 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         # Get Capabitilies
         resp = self.conn.get_capabilities(self.zone)
+        resp_read = resp.read()
+        
+        # DEBUG
+        # urlresp_to_file(resp_read)
 
         if resp.code != 200:
-            raise Exception(resp.read())
+            raise Exception(resp_read)
 
-        tree = EltTree.fromstring(resp.read())
+        tree = EltTree.fromstring(resp_read)
         
         # Find tolerance to determine if 2 points are equals
         for entry in tree.findall(r"./tolerance"):
@@ -424,9 +428,17 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         for entry in tree.findall(r"./representation_plane_sommet_autorise/representation_plane_sommet"):
             t = (entry.attrib[r"som_representation_plane"], entry.attrib[r"epsg_crs_id"], entry.text)
             self.ellips_acronym.append(t)
-
+            
+        # Added v2.1 <<
+        for entry in tree.findall(r"./typologie_nature_sommet/nature"):
+            self.typo_nature_som.append(entry.text)           
+        
         for entry in tree.findall(r"./nature_sommet_conseille/nature"):
             self.nature.append(entry.text)
+            
+        for entry in tree.findall(r"./typologie_nature_limite/nature"):
+            self.typo_nature_lim.append(entry.text)
+        # >>
 
         for entry in tree.findall(r"./som_ge_createur_autorise/som_ge_createur"):
             t = (entry.attrib[r"num_ge"], entry.text)
@@ -452,7 +464,8 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                 self.projComboBox.setCurrentIndex(i)
 
                 # Then change the CRS in canvas
-                crs = QgsCoordinateReferenceSystem(int(e[1]), QgsCoordinateReferenceSystem.EpsgCrsId)
+                epsg_str = "EPSG:" + str(int(e[1]))
+                crs = QgsCoordinateReferenceSystem(epsg_str)
                 self.project.setCrs(crs)
                 self.project_crs = int(e[1])
         
@@ -463,13 +476,22 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.zoom_bbox()       
         self.canvas.refresh()
         
+        # Modified in v2.1 <<
         # Add the list of possible values to the field som_nature
-        map_predefined_vals_to_fld(self.l_vertex, "som_nature", self.nature) 
+        map_predefined_vals_to_fld(self.l_vertex, "som_typologie_nature", self.typo_nature_som) 
         # Add the list of possible values to the field som_precision_rattachement
         map_predefined_vals_to_fld(self.l_vertex, "som_precision_rattachement", self.precision_class, 0, 1)
         # Add the list of possible values to the field som_precision_rattachement
-        map_predefined_vals_to_fld(self.l_vertex, "som_representation_plane", self.ellips_acronym, 0, 2)
-                
+        map_predefined_vals_to_fld(self.l_vertex, "som_representation_plane", self.ellips_acronym, 0, 2)       
+        # Add the list of possible values to the field lim_typologie_nature
+        map_predefined_vals_to_fld(self.l_edge, "lim_typologie_nature", self.typo_nature_lim)
+        # Add the list of possible values to the field som_delimitation_publique
+        false_true_lst = [('False', 'Faux'), ('True', 'Vrai')]
+        map_predefined_vals_to_fld(self.l_vertex, "som_delimitation_publique", false_true_lst, 0, 1)
+        # Add the list of possible values to the field lim_delimitation_publique
+        map_predefined_vals_to_fld(self.l_edge, "lim_delimitation_publique", false_true_lst, 0, 1)
+        # >>
+        
         # Then, start editing mode..
         for idx, layer in enumerate(self.layers):
             if not layer.isEditable():
@@ -526,6 +548,8 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         self.ellips_acronym = []
         self.dflt_ellips_acronym = None
         self.nature = []
+        self.typo_nature_lim = []
+        self.typo_nature_som = []
         self.auth_creator = []
         self.l_vertex = None
         self.l_edge = None
@@ -640,7 +664,10 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         # Send data
         edit = self.conn.edit(self.zone, EltTree.tostring(root))
         if edit.code != 200:
-            err_tree = EltTree.fromstring(edit.read())
+            edit_read = edit.read()
+            # DEBUG
+            # urlresp_to_file(edit_read)
+            err_tree = EltTree.fromstring(edit_read)
             msgs_log = []
             for log in err_tree.iter(r"log"):
                 msgs_log.append("%s: %s" % (log.attrib["type"], log.text))
@@ -648,13 +675,14 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         tree = EltTree.fromstring(edit.read())
         err = tree.find(r"./erreur")
         if err:
+            debug_msg('DEBUG', "erreur: %s" , (str(err)))
             err_tree = EltTree.fromstring(err)
             msgs_log = []
             for log in err_tree.iter(r"log"):
                 msgs_log.append("%s: %s" % (log.attrib["type"], log.text))
             raise Exception(msgs_log)
 
-        #Returns log info
+        # Returns log info
         msgs_log = []
         for log in tree.iter(r"log"):
             msgs_log.append("%s: %s" % (log.attrib["type"], log.text))
@@ -756,21 +784,23 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         # Define default style renderer..
         renderer_vertex = QgsRuleBasedRenderer(QgsMarkerSymbol())
         vertex_root_rule = renderer_vertex.rootRule()
+        
+        # Modified in v2.1 (som_nature replaced by som_typologie_nature) >>
         vertex_rules = (
             (
                  ("Borne, borne à puce, pierre, piquet, clou ou broche"),
-                 ("$id >= 0 AND \"som_nature\" IN ('Borne',"
+                 ("$id >= 0 AND \"som_typologie_nature\" IN ('Borne',"
                   "'Borne à puce', 'Pierre', 'Piquet', 'Clou ou broche')"),
                  r"#EC0000", 2.2
             ), (
                  ("Axe cours d'eau, axe fossé, haut de talus, pied de talus"),
-                 ("$id >= 0 AND \"som_nature\" IN ('Axe cours d\'\'eau',"
+                 ("$id >= 0 AND \"som_typologie_nature\" IN ('Axe cours d\'\'eau',"
                   "'Axe fossé', 'Haut de talus', 'Pied de talus')"),
                  r"#EE8012", 2.2
             ), (
                  ("Angle de bâtiment, axe de mur, angle de mur, "
                   "angle de clôture, pylône et toute autre valeur"),
-                 ("$id >= 0 AND \"som_nature\" NOT IN ('Borne',"
+                 ("$id >= 0 AND \"som_typologie_nature\" NOT IN ('Borne',"
                   "'Borne à puce', 'Pierre', 'Piquet', 'Clou ou broche',"
                   "'Axe cours d\'\'eau', 'Axe fossé', 'Haut de talus',"
                   "'Pied de talus')"),
@@ -781,6 +811,8 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                (
                 "Point nouveau à traiter car proche d'un existant", r"point_rfu_proche is not null", "#bcff03", 3
             ))
+            
+        # >>
 
         for label, expression, color, size in vertex_rules:
             rule = vertex_root_rule.children()[0].clone()
@@ -795,8 +827,30 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
 
         renderer_edge = QgsRuleBasedRenderer(QgsLineSymbol())
         edge_root_rule = renderer_edge.rootRule()
-        edge_rules = ((r"Limite", r"$id >= 0", "#0A0AFF", 0.5),
-                      (r"Temporaire", r"$id < 0", "cyan", 1))
+        
+        # Modified in v2.1 (lim_typologie_nature added) <<
+        edge_rules = (  
+                        (
+                            "Limite privée", 
+                            "$id >= 0 AND \"lim_typologie_nature\" = '" + lim_typo_nat_vals[0] + "'",
+                            "#0A0AFF", 
+                            0.5
+                        ),
+                        (
+                            "Limite naturelle", 
+                            "$id >= 0 AND \"lim_typologie_nature\" = '" + lim_typo_nat_vals[1] + "'",
+                            "#aa876d", 
+                            0.5
+                        ),
+                        (
+                            "Temporaire", 
+                            "$id < 0", 
+                            "cyan", 
+                            1
+                        )
+                    )
+                      
+        # >>
 
         for label, expression, color, width in edge_rules:
             rule = edge_root_rule.children()[0].clone()
@@ -833,11 +887,16 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             # Field used to store the attestation_qualite value 
             # when modifying a vertex ("false" or "true")
             attestation_qualite = "false"
-
+                            
+            som_delim_pub = str(e.find(r"./som_delimitation_publique").text)
+            som_typo_nature = str(e.find(r"./som_typologie_nature").text)
+            
             ft_vertex.setAttributes([
                         _id_noeud,
                         _version,
                         som_ge_createur,
+                        som_delim_pub,
+                        som_typo_nature,
                         som_nature,
                         som_prec_rattcht,
                         som_coord_est,
@@ -859,11 +918,16 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
             _id_arc = int(e.attrib[r"id_arc"])
             _version = int(e.attrib[r"version"])
             lim_ge_createur = str(e.find(r"./lim_ge_createur").text)
-
+            
+            lim_typo_nature = str(e.find(r"./lim_typologie_nature").text)
+            lim_delim_pub = str(e.find(r"./lim_delimitation_publique").text)
+            
             ft_edge.setAttributes([
                         _id_arc,
                         _version,
                         lim_ge_createur,
+                        lim_delim_pub,
+                        lim_typo_nature
                         ])
 
             fts_edge.append(ft_edge)
@@ -883,24 +947,6 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         # Check if valid..
         if not l_vertex.isValid() or not l_edge.isValid():
             raise Exception("Une erreur est survenue lors du chargement de la couche.")
-
-        # No more labelling on points
-        # # Set labelling...
-        # palyr_stgs = QgsPalLayerSettings()
-        # txt_format = QgsTextFormat()
-        
-        # txt_format.setSize(8)
-        # palyr_stgs.setFormat(txt_format)
-        # palyr_stgs.isExpression = True
-        # palyr_stgs.fieldName = r"$id"  # Expression $id
-        # palyr_stgs.placement = QgsPalLayerSettings.OverPoint  # ::OverPoint
-        # palyr_stgs.displayAll = True
-        # palyr_stgs.quadOffset = 2  # ::QuadrantAboveRight
-        # palyr_stgs.xOffset = 1.0
-        # palyr_stgs.yOffset = -1.0
-        # palyr_stgs = QgsVectorLayerSimpleLabeling(palyr_stgs)
-        # l_vertex.setLabeling(palyr_stgs)
-        # l_vertex.setLabelsEnabled(True)
 
         # Then return layers..
         return [l_vertex, l_edge]
@@ -967,7 +1013,8 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                 epsg = int(e[1])
                 continue
 
-        crs = QgsCoordinateReferenceSystem(epsg, QgsCoordinateReferenceSystem.EpsgCrsId)
+        epsg_str = "EPSG:" + str(epsg)
+        crs = QgsCoordinateReferenceSystem(epsg_str)
         self.project.setCrs(crs)       
         
     # Stop zoom when the scale limit is exceeded
