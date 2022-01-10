@@ -8,10 +8,10 @@
     * Description:   Define a class that provides to the plugin
     *                GeofoncierEditeurRFU several tools
     * First release: 2015
-    * Last release:  2021-03-12
-    * Copyright:     (C) 2019,2020,2021 GEOFONCIER(R), SIGMOÉ(R)
+    * Last release:  2022-01-10
+    * Copyright:     (C) 2019,2020,2021, 2022 GEOFONCIER(R), SIGMOÉ(R)
     * Email:         em at sigmoe.fr
-    * License:       GPL license 
+    * License:       GPL license
     ***************************************************************************
 """
 
@@ -72,7 +72,7 @@ def get_token(url, method=None, user_agent=None, user=None,
         req.get_method = lambda: r"PUT"
 
     if user and password:
-        base64string = base64.encodestring(("%s:%s" % (user, password)).encode('utf-8')).decode('utf-8')[:-1]
+        base64string = base64.encodebytes(("%s:%s" % (user, password)).encode('utf-8')).decode('utf-8')[:-1]
         req.add_header(r"Authorization", r"Basic %s" % base64string)
 
     if user_agent:
