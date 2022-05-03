@@ -8,10 +8,10 @@
     * Description:   Define a class that provides to the plugin
     *                GeofoncierEditeurRFU the RFU connector
     * First release: 2015
-    * Last release:  2021-03-12
-    * Copyright:     (C) 2019,2020,2021 GEOFONCIER(R), SIGMOÉ(R)
+    * Last release:  2022-05-03
+    * Copyright:     (C) 2019,2020,2021, 2022 GEOFONCIER(R), SIGMOÉ(R)
     * Email:         em at sigmoe.fr
-    * License:       GPL license 
+    * License:       GPL license
     ***************************************************************************
 """
 
@@ -614,7 +614,6 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
                         vtx_outofbbox_lyr.startEditing()
                     vtx_outofbbox_lyr.addFeature(self.vertices_added_ft[fid])
                     first_vtx_kept = False
-                 
         if self.edges_added:
             for fid in self.edges_added:
                 # Check if edge is out of the bbox
@@ -730,7 +729,9 @@ class RFUDockWidget(QDockWidget, gui_dckwdgt_rfu_connector):
         if err:
             raise Exception(err.text)
 
-        treeterator = list(tree.getiterator(tag=r"changeset"))
+        # treeterator = list(tree.getiterator(tag=r"changeset"))
+        # Python 3.9 -> getiterator deprecated
+        treeterator = list(tree.iter(tag=r"changeset"))
 
         # We should get only one changeset
         if len(treeterator) != 1:
